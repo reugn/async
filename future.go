@@ -124,10 +124,12 @@ func (fut *FutureImpl) RecoverWith(rf Future) Future {
 // complete future with either value or error
 func (fut *FutureImpl) complete(v interface{}, e error) {
 	fut.compl.Do(func() {
-		if e != nil {
-			fut.done <- e
-		} else {
-			fut.done <- v
-		}
+		go func() {
+			if e != nil {
+				fut.done <- e
+			} else {
+				fut.done <- v
+			}
+		}()
 	})
 }
