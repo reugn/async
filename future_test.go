@@ -1,6 +1,7 @@
 package async
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -46,4 +47,36 @@ func TestFutureFirstCompleted(t *testing.T) {
 	if futErr == nil {
 		t.Fatalf("futErr is nil")
 	}
+}
+
+func TestFutureTransform(t *testing.T) {
+	p1 := NewPromise()
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		p1.Success(1)
+	}()
+	res, _ := p1.Future().Map(func(v interface{}) (interface{}, error) {
+		return v.(int) + 1, nil
+	}).FlatMap(func(v interface{}) (Future, error) {
+		nv := v.(int) + 1
+		p2 := NewPromise()
+		p2.Success(nv)
+		return p2.Future(), nil
+	}).Recover(func() (interface{}, error) {
+		return 5, nil
+	}).Get()
+	assertEqual(t, 3, res)
+}
+
+func TestFutureFailure(t *testing.T) {
+	p1 := NewPromise()
+	p2 := NewPromise()
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		p1.Failure(errors.New("Future error"))
+		time.Sleep(time.Millisecond * 200)
+		p2.Success(2)
+	}()
+	res, _ := p1.Future().RecoverWith(p2.Future()).Get()
+	assertEqual(t, 2, res)
 }
