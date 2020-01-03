@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/reugn/async/internal"
 )
 
 type syncList struct {
@@ -57,5 +59,5 @@ func TestList1(t *testing.T) {
 		wg.Done()
 	}()
 	wg.Wait()
-	assertEqual(t, 50, list.size())
+	internal.AssertEqual(t, 50, list.size())
 }
