@@ -15,7 +15,7 @@ const (
 	lockStatusWriting
 )
 
-// OptimisticLock allows optimistic reading
+// OptimisticLock allows an optimistic reading
 // Could be retried or switched to RLock in case of failure
 type OptimisticLock struct {
 	rw     *sync.RWMutex
@@ -23,7 +23,7 @@ type OptimisticLock struct {
 	status lockStatus
 }
 
-// NewOptimisticLock returns new OptimisticLock
+// NewOptimisticLock returns a new OptimisticLock
 func NewOptimisticLock() *OptimisticLock {
 	return &OptimisticLock{
 		rw:     &sync.RWMutex{},
@@ -55,17 +55,17 @@ func (o *OptimisticLock) RUnlock() {
 	o.rw.RUnlock()
 }
 
-// OptLock returns stamp to be checked on OptUnlock
+// OptLock returns the stamp to be checked on OptUnlock
 func (o *OptimisticLock) OptLock() int64 {
-	return o.stamp
+	return atomic.LoadInt64(&o.stamp)
 }
 
-// OptUnlock returns boolean result of optimistic unlock
+// OptUnlock returns the boolean result of the optimistic unlock
 // Retry or switch to read lock in case of negative outcome
 func (o *OptimisticLock) OptUnlock(stamp int64) bool {
-	if o.status == lockStatusSteady && stamp == o.stamp {
+	if o.status == lockStatusSteady && stamp == atomic.LoadInt64(&o.stamp) {
 		return true
 	}
-	time.Sleep(time.Nanosecond) //switch context
+	time.Sleep(time.Nanosecond) // switch context
 	return false
 }
