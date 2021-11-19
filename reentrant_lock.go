@@ -34,19 +34,21 @@ func (r *ReentrantLock) Lock() {
 	if err != nil {
 		panic("async: Error on GoroutineID call")
 	}
+loop:
 	for {
 		r.l.Lock()
-		// first time lock
-		if r.goroutineID == 0 {
+		switch r.goroutineID {
+		case 0:
+			// first time lock
 			r.handleLock()
 			r.goroutineID = curr
 			r.counter++
-			break
-		} else if r.goroutineID == curr {
+			break loop
+		case curr:
 			// reentrant lock request
 			r.counter++
-			break
-		} else {
+			break loop
+		default:
 			// another goroutine lock request
 			r.lockBalance--
 			r.l.Unlock()
