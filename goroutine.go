@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 )
 
-// GoroutineID returns current goroutine id
+// GoroutineID returns the current goroutine id.
 func GoroutineID() (uint, error) {
 	var id uint
 	var prefix string
