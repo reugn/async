@@ -98,27 +98,33 @@ func (fut *FutureImpl) Get() (interface{}, error) {
 }
 
 // Recover handles any error that this Future might contain using a given resolver function.
-// If this Future contains a valid result, it is returned as-is.
+// Returns the result as a new Future.
 func (fut *FutureImpl) Recover(f func() (interface{}, error)) Future {
-	fut.accept()
-	if fut.err != nil {
-		next := NewFuture()
-		next.complete(f())
-		return next
-	}
-	return fut
+	next := NewFuture()
+	go func() {
+		fut.accept()
+		if fut.err != nil {
+			next.complete(f())
+		} else {
+			next.complete(fut.value, nil)
+		}
+	}()
+	return next
 }
 
 // RecoverWith handles any error that this Future might contain using another Future.
-// If this Future contains a valid result, it is returned as-is.
+// Returns the result as a new Future.
 func (fut *FutureImpl) RecoverWith(rf Future) Future {
-	fut.accept()
-	if fut.err != nil {
-		next := NewFuture()
-		next.complete(rf.Get())
-		return next
-	}
-	return fut
+	next := NewFuture()
+	go func() {
+		fut.accept()
+		if fut.err != nil {
+			next.complete(rf.Get())
+		} else {
+			next.complete(fut.value, nil)
+		}
+	}()
+	return next
 }
 
 // complete completes the Future with either a value or an error.
