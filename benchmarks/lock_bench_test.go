@@ -9,7 +9,7 @@ import (
 	"github.com/reugn/async"
 )
 
-//go test -bench=. -benchmem -v
+// go test -bench=. -benchmem -v
 
 type syncList struct {
 	list []string
