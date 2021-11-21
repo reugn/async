@@ -6,32 +6,28 @@ import "sync"
 // but will be available at some point, or an error if that value could not be made available.
 type Future interface {
 
-	// Creates a new future by applying a function to the successful result of this future.
+	// Map creates a new Future by applying a function to the successful result of this Future.
 	Map(func(interface{}) (interface{}, error)) Future
 
-	// Creates a new future by applying a function to the successful result of
-	// this future, and returns the result of the function as the new future.
+	// FlatMap creates a new Future by applying a function to the successful result of
+	// this Future.
 	FlatMap(func(interface{}) (Future, error)) Future
 
-	// Blocks until Future completed and return either result or error.
+	// Get blocks until the Future is completed and returns either a result or an error.
 	Get() (interface{}, error)
 
-	// Creates a new future that will handle any error that this
-	// future might contain. If this future contains
-	// a valid result then the new future will contain the same.
+	// Recover handles any error that this Future might contain using a resolver function.
 	Recover(func() (interface{}, error)) Future
 
-	// Creates a new future that will handle any error that this
-	// future might contain by assigning it a value of another future.
-	// If this future contains a valid result then the new future will contain the same result.
+	// RecoverWith handles any error that this Future might contain using another Future.
 	RecoverWith(Future) Future
 
-	// Complete future with either result or error
-	// For Promise use internally
+	// complete completes the Future with either a value or an error.
+	// Is used by Promise internally.
 	complete(interface{}, error)
 }
 
-// FutureImpl Future implementation
+// FutureImpl implements the Future interface.
 type FutureImpl struct {
 	acc   sync.Once
 	compl sync.Once
@@ -40,14 +36,14 @@ type FutureImpl struct {
 	err   error
 }
 
-// NewFuture returns new Future
+// NewFuture returns a new Future.
 func NewFuture() Future {
 	return &FutureImpl{
 		done: make(chan interface{}),
 	}
 }
 
-// accept blocks once until result is available
+// accept blocks once, until the Future result is available.
 func (fut *FutureImpl) accept() {
 	fut.acc.Do(func() {
 		sig := <-fut.done
@@ -60,7 +56,8 @@ func (fut *FutureImpl) accept() {
 	})
 }
 
-// Map default implementation
+// Map creates a new Future by applying a function to the successful result of this Future
+// and returns the result of the function as a new Future.
 func (fut *FutureImpl) Map(f func(interface{}) (interface{}, error)) Future {
 	next := NewFuture()
 	go func() {
@@ -74,7 +71,8 @@ func (fut *FutureImpl) Map(f func(interface{}) (interface{}, error)) Future {
 	return next
 }
 
-// FlatMap default implementation
+// FlatMap creates a new Future by applying a function to the successful result of
+// this Future and returns the result of the function as a new Future.
 func (fut *FutureImpl) FlatMap(f func(interface{}) (Future, error)) Future {
 	next := NewFuture()
 	go func() {
@@ -93,35 +91,43 @@ func (fut *FutureImpl) FlatMap(f func(interface{}) (Future, error)) Future {
 	return next
 }
 
-// Get default implementation
+// Get blocks until the Future is completed and returns either a result or an error.
 func (fut *FutureImpl) Get() (interface{}, error) {
 	fut.accept()
 	return fut.value, fut.err
 }
 
-// Recover default implementation
+// Recover handles any error that this Future might contain using a given resolver function.
+// Returns the result as a new Future.
 func (fut *FutureImpl) Recover(f func() (interface{}, error)) Future {
-	fut.accept()
-	if fut.err != nil {
-		next := NewFuture()
-		next.complete(f())
-		return next
-	}
-	return fut
+	next := NewFuture()
+	go func() {
+		fut.accept()
+		if fut.err != nil {
+			next.complete(f())
+		} else {
+			next.complete(fut.value, nil)
+		}
+	}()
+	return next
 }
 
-// RecoverWith default implementation
+// RecoverWith handles any error that this Future might contain using another Future.
+// Returns the result as a new Future.
 func (fut *FutureImpl) RecoverWith(rf Future) Future {
-	fut.accept()
-	if fut.err != nil {
-		next := NewFuture()
-		next.complete(rf.Get())
-		return next
-	}
-	return fut
+	next := NewFuture()
+	go func() {
+		fut.accept()
+		if fut.err != nil {
+			next.complete(rf.Get())
+		} else {
+			next.complete(fut.value, nil)
+		}
+	}()
+	return next
 }
 
-// complete future with either value or error
+// complete completes the Future with either a value or an error.
 func (fut *FutureImpl) complete(v interface{}, e error) {
 	fut.compl.Do(func() {
 		go func() {

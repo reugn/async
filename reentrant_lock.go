@@ -2,7 +2,7 @@ package async
 
 import "sync"
 
-// ReentrantLock allows goroutines to enter into lock on a resource more than once
+// ReentrantLock allows goroutines to enter the lock more than once.
 type ReentrantLock struct {
 	g           *sync.Mutex
 	l           *sync.Mutex
@@ -11,7 +11,7 @@ type ReentrantLock struct {
 	lockBalance int
 }
 
-// NewReentrantLock returns new ReentrantLock
+// NewReentrantLock returns a new ReentrantLock.
 func NewReentrantLock() *ReentrantLock {
 	return &ReentrantLock{
 		g:           &sync.Mutex{},
@@ -27,27 +27,29 @@ func (r *ReentrantLock) handleLock() {
 	}
 }
 
-// Lock locks resource
-// Panics on GoroutineID call error
+// Lock locks the resource.
+// Panics if the GoroutineID call returns an error.
 func (r *ReentrantLock) Lock() {
 	curr, err := GoroutineID()
 	if err != nil {
 		panic("async: Error on GoroutineID call")
 	}
+loop:
 	for {
 		r.l.Lock()
-		// first time lock
-		if r.goroutineID == 0 {
+		switch r.goroutineID {
+		case 0:
+			// first time lock
 			r.handleLock()
 			r.goroutineID = curr
 			r.counter++
-			break
-		} else if r.goroutineID == curr {
+			break loop
+		case curr:
 			// reentrant lock request
 			r.counter++
-			break
-		} else {
-			// another goroutine requested lock
+			break loop
+		default:
+			// another goroutine lock request
 			r.lockBalance--
 			r.l.Unlock()
 			r.g.Lock()
@@ -56,8 +58,8 @@ func (r *ReentrantLock) Lock() {
 	r.l.Unlock()
 }
 
-// Unlock unlocks resource
-// Panics on trying to unlock the unlocked lock
+// Unlock unlocks the resource.
+// Panics on trying to unlock the unlocked lock.
 func (r *ReentrantLock) Unlock() {
 	if r.counter == 0 && r.goroutineID == 0 {
 		panic("async: Unlock of unlocked ReentrantLock")
