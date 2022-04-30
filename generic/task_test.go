@@ -11,11 +11,11 @@ import (
 )
 
 func TestAsyncTask(t *testing.T) {
-	task := newAsyncTask[string](func() (string, error) {
+	task := NewAsyncTask(func() (string, error) {
 		time.Sleep(1 * time.Second)
 		return "ok", nil
 	})
-	res, err := task.call().Get()
+	res, err := task.Call().Get()
 
 	internal.AssertEqual(t, "ok", res.(string))
 	internal.AssertEqual(t, err, nil)

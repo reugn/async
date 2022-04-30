@@ -16,7 +16,7 @@ The implemented patterns were taken from Scala and Java.
 * **Reentrant Lock** - Mutex that allows goroutines to enter into the lock on a resource more than once.
 * **Optimistic Lock** - Mutex that allows optimistic reading. Could be retried or switched to RLock in case of failure. Significantly improves performance in case of frequent reads and short writes. See [benchmarks](./benchmarks/README.md).
 
-### [Go 1.18 Generic prototypes](./generic)
+### [Generic types](./generic)
 * **Task** - A data type for controlling possibly lazy and asynchronous computations.
 
 ## Examples
