@@ -7,18 +7,20 @@ import (
 	"github.com/reugn/async"
 )
 
-// asyncTask is a data type for controlling possibly lazy & asynchronous computations.
-type asyncTask[T any] struct {
+// AsyncTask is a data type for controlling possibly lazy & asynchronous computations.
+type AsyncTask[T any] struct {
 	taskFunc func() (T, error)
 }
 
-func newAsyncTask[T any](taskFunc func() (T, error)) *asyncTask[T] {
-	return &asyncTask[T]{
+// NewAsyncTask returns a new AsyncTask.
+func NewAsyncTask[T any](taskFunc func() (T, error)) *AsyncTask[T] {
+	return &AsyncTask[T]{
 		taskFunc: taskFunc,
 	}
 }
 
-func (task *asyncTask[T]) call() async.Future {
+// Call executes the AsyncTask and returns a Future.
+func (task *AsyncTask[T]) Call() async.Future {
 	promise := async.NewPromise()
 	go func() {
 		res, err := task.taskFunc()
