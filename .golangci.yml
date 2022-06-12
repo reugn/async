@@ -1,6 +1,6 @@
 run:
   skip-dirs:
-    - generic
+    - benchmarks
 
 linters:
   disable-all: true
@@ -15,20 +15,14 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
     - prealloc
     - revive
-    - staticcheck
-    - structcheck
-    - stylecheck
     - typecheck
     - unconvert
-    - unparam
-    - unused
     - varcheck
 
 issues:
@@ -37,4 +31,3 @@ issues:
     - path: _test\.go
       linters:
         - errcheck
-        - unparam
