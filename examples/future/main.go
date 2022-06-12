@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/reugn/async"
@@ -9,15 +9,19 @@ import (
 
 func main() {
 	future := asyncAction()
-	rt, _ := future.Get()
-	fmt.Println(rt)
+	result, err := future.Get()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Print(result)
 }
 
-func asyncAction() async.Future {
-	promise := async.NewPromise()
+func asyncAction() async.Future[string] {
+	promise := async.NewPromise[string]()
 	go func() {
 		time.Sleep(time.Second)
 		promise.Success("OK")
 	}()
+
 	return promise.Future()
 }

@@ -3,16 +3,16 @@ package async
 import "sync"
 
 // Promise represents a writable, single-assignment container, which completes a Future.
-type Promise interface {
+type Promise[T any] interface {
 
 	// Success completes the underlying Future with a value.
-	Success(interface{})
+	Success(T)
 
 	// Failure fails the underlying Future with an error.
 	Failure(error)
 
 	// Future returns the underlying Future.
-	Future() Future
+	Future() Future[T]
 }
 
 type promiseStatus uint8
@@ -23,22 +23,25 @@ const (
 )
 
 // PromiseImpl implements the Promise interface.
-type PromiseImpl struct {
+type PromiseImpl[T any] struct {
 	sync.Mutex
-	future Future
+	future Future[T]
 	status promiseStatus
 }
 
+// Verify PromiseImpl satisfies the Promise interface.
+var _ Promise[any] = (*PromiseImpl[any])(nil)
+
 // NewPromise returns a new PromiseImpl.
-func NewPromise() Promise {
-	return &PromiseImpl{
-		future: NewFuture(),
+func NewPromise[T any]() Promise[T] {
+	return &PromiseImpl[T]{
+		future: NewFuture[T](),
 		status: ready,
 	}
 }
 
 // Success completes the underlying Future with a given value.
-func (p *PromiseImpl) Success(value interface{}) {
+func (p *PromiseImpl[T]) Success(value T) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -49,17 +52,18 @@ func (p *PromiseImpl) Success(value interface{}) {
 }
 
 // Failure fails the underlying Future with a given error.
-func (p *PromiseImpl) Failure(e error) {
+func (p *PromiseImpl[T]) Failure(err error) {
 	p.Lock()
 	defer p.Unlock()
 
 	if p.status != completed {
-		p.future.complete(nil, e)
+		var nilT T
+		p.future.complete(nilT, err)
 		p.status = completed
 	}
 }
 
 // Future returns the underlying Future.
-func (p *PromiseImpl) Future() Future {
+func (p *PromiseImpl[T]) Future() Future[T] {
 	return p.future
 }
