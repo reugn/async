@@ -13,11 +13,9 @@ The implemented patterns were taken from Scala and Java.
 ## Overview
 * **Future** - A placeholder object for a value that may not yet exist.
 * **Promise** - While futures are defined as a type of read-only placeholder object created for a result which doesn’t yet exist, a promise can be thought of as a writable, single-assignment container, which completes a future.
+* **Task** - A data type for controlling possibly lazy and asynchronous computations.
 * **Reentrant Lock** - Mutex that allows goroutines to enter into the lock on a resource more than once.
 * **Optimistic Lock** - Mutex that allows optimistic reading. Could be retried or switched to RLock in case of failure. Significantly improves performance in case of frequent reads and short writes. See [benchmarks](./benchmarks/README.md).
-
-### [Generic types](./generic)
-* **Task** - A data type for controlling possibly lazy and asynchronous computations.
 
 ## Examples
 Can be found in the examples directory/tests.
