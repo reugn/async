@@ -20,13 +20,6 @@ func NewReentrantLock() *ReentrantLock {
 	}
 }
 
-func (r *ReentrantLock) handleLock() {
-	if r.lockBalance > 0 {
-		r.lockBalance--
-		r.g.Lock()
-	}
-}
-
 // Lock locks the resource.
 // Panics if the GoroutineID call returns an error.
 func (r *ReentrantLock) Lock() {
@@ -58,18 +51,25 @@ loop:
 	r.l.Unlock()
 }
 
+func (r *ReentrantLock) handleLock() {
+	if r.lockBalance > 0 {
+		r.lockBalance--
+		r.g.Lock()
+	}
+}
+
 // Unlock unlocks the resource.
 // Panics on trying to unlock the unlocked lock.
 func (r *ReentrantLock) Unlock() {
+	r.l.Lock()
+	defer r.l.Unlock()
 	if r.counter == 0 && r.goroutineID == 0 {
 		panic("async: Unlock of unlocked ReentrantLock")
 	}
-	r.l.Lock()
 	r.counter--
 	if r.counter == 0 {
 		r.goroutineID = 0
 		r.lockBalance++
 		r.g.Unlock()
 	}
-	r.l.Unlock()
 }
