@@ -1,6 +1,10 @@
 package async
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+	"time"
+)
 
 // Future represents a value which may or may not currently be available,
 // but will be available at some point, or an error if that value could not be made available.
@@ -13,8 +17,12 @@ type Future[T any] interface {
 	// this Future.
 	FlatMap(func(T) (Future[T], error)) Future[T]
 
-	// Get blocks until the Future is completed and returns either a result or an error.
-	Get() (T, error)
+	// Join blocks until the Future is completed and returns either a result or an error.
+	Join() (T, error)
+
+	// Get blocks for at most the given time duration for this Future to complete
+	// and returns either a result or an error.
+	Get(time.Duration) (T, error)
 
 	// Recover handles any error that this Future might contain using a resolver function.
 	Recover(func() (T, error)) Future[T]
@@ -49,14 +57,33 @@ func NewFuture[T any]() Future[T] {
 // accept blocks once, until the Future result is available.
 func (fut *FutureImpl[T]) accept() {
 	fut.acceptOnce.Do(func() {
-		sig := <-fut.done
-		switch v := sig.(type) {
-		case error:
-			fut.err = v
-		default:
-			fut.value = v.(T)
+		result := <-fut.done
+		fut.setResult(result)
+	})
+}
+
+// acceptTimeout blocks once, until the Future result is available or until the timeout expires.
+func (fut *FutureImpl[T]) acceptTimeout(timeout time.Duration) {
+	fut.acceptOnce.Do(func() {
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		select {
+		case result := <-fut.done:
+			fut.setResult(result)
+		case <-timer.C:
+			fut.err = fmt.Errorf("Future timeout after %s", timeout)
 		}
 	})
+}
+
+// setResult assigns a value to the Future instance.
+func (fut *FutureImpl[T]) setResult(result interface{}) {
+	switch value := result.(type) {
+	case error:
+		fut.err = value
+	default:
+		fut.value = value.(T)
+	}
 }
 
 // Map creates a new Future by applying a function to the successful result of this Future
@@ -90,16 +117,23 @@ func (fut *FutureImpl[T]) FlatMap(f func(T) (Future[T], error)) Future[T] {
 				var nilT T
 				next.complete(nilT, terr)
 			} else {
-				next.complete(tfut.Get())
+				next.complete(tfut.Join())
 			}
 		}
 	}()
 	return next
 }
 
-// Get blocks until the Future is completed and returns either a result or an error.
-func (fut *FutureImpl[T]) Get() (T, error) {
+// Join blocks until the Future is completed and returns either a result or an error.
+func (fut *FutureImpl[T]) Join() (T, error) {
 	fut.accept()
+	return fut.value, fut.err
+}
+
+// Get blocks for at most the given time duration for this Future to complete
+// and returns either a result or an error.
+func (fut *FutureImpl[T]) Get(timeout time.Duration) (T, error) {
+	fut.acceptTimeout(timeout)
 	return fut.value, fut.err
 }
 
@@ -125,7 +159,7 @@ func (fut *FutureImpl[T]) RecoverWith(rf Future[T]) Future[T] {
 	go func() {
 		fut.accept()
 		if fut.err != nil {
-			next.complete(rf.Get())
+			next.complete(rf.Join())
 		} else {
 			next.complete(fut.value, nil)
 		}

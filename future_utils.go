@@ -10,12 +10,12 @@ func FutureSeq[T any](futures []Future[T]) Future[[]interface{}] {
 	next := NewFuture[[]interface{}]()
 	go func() {
 		seq := make([]interface{}, len(futures))
-		for i, f := range futures {
-			v, e := f.Get()
-			if e != nil {
-				seq[i] = e
+		for i, future := range futures {
+			res, err := future.Join()
+			if err != nil {
+				seq[i] = err
 			} else {
-				seq[i] = v
+				seq[i] = res
 			}
 		}
 		next.complete(seq, nil)
@@ -30,7 +30,7 @@ func FutureFirstCompletedOf[T any](futures ...Future[T]) Future[T] {
 	go func() {
 		for _, f := range futures {
 			go func(future Future[T]) {
-				next.complete(future.Get())
+				next.complete(future.Join())
 			}(f)
 		}
 	}()
@@ -45,7 +45,7 @@ func FutureTimer[T any](d time.Duration) Future[T] {
 		timer := time.NewTimer(d)
 		<-timer.C
 		var nilT T
-		next.complete(nilT, fmt.Errorf("FutureTimer %v timeout", d))
+		next.complete(nilT, fmt.Errorf("FutureTimer %s timeout", d))
 	}()
 	return next
 }

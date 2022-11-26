@@ -14,10 +14,10 @@ func TestFuture(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 		p.Success(true)
 	}()
-	v, e := p.Future().Get()
+	res, err := p.Future().Join()
 
-	internal.AssertEqual(t, v, true)
-	internal.AssertEqual(t, e, nil)
+	internal.AssertEqual(t, res, true)
+	internal.AssertEqual(t, err, nil)
 }
 
 func TestFutureUtils(t *testing.T) {
@@ -34,7 +34,7 @@ func TestFutureUtils(t *testing.T) {
 	}()
 	arr := []Future[int]{p1.Future(), p2.Future(), p3.Future()}
 	res := []interface{}{1, 2, 3}
-	futRes, _ := FutureSeq(arr).Get()
+	futRes, _ := FutureSeq(arr).Join()
 
 	internal.AssertEqual(t, res, futRes)
 }
@@ -46,7 +46,7 @@ func TestFutureFirstCompleted(t *testing.T) {
 		p.Success(true)
 	}()
 	timeout := FutureTimer[bool](time.Millisecond * 100)
-	futRes, futErr := FutureFirstCompletedOf(p.Future(), timeout).Get()
+	futRes, futErr := FutureFirstCompletedOf(p.Future(), timeout).Join()
 
 	internal.AssertEqual(t, false, futRes)
 	if futErr == nil {
@@ -60,7 +60,7 @@ func TestFutureTransform(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 		p1.Success(1)
 	}()
-	res, _ := p1.Future().Map(func(v int) (int, error) {
+	future := p1.Future().Map(func(v int) (int, error) {
 		return v + 1, nil
 	}).FlatMap(func(v int) (Future[int], error) {
 		nv := v + 1
@@ -69,8 +69,12 @@ func TestFutureTransform(t *testing.T) {
 		return p2.Future(), nil
 	}).Recover(func() (int, error) {
 		return 5, nil
-	}).Get()
+	})
 
+	res, _ := future.Get(time.Second * 5)
+	internal.AssertEqual(t, 3, res)
+
+	res, _ = future.Join()
 	internal.AssertEqual(t, 3, res)
 }
 
@@ -83,7 +87,22 @@ func TestFutureFailure(t *testing.T) {
 		time.Sleep(time.Millisecond * 200)
 		p2.Success(2)
 	}()
-	res, _ := p1.Future().RecoverWith(p2.Future()).Get()
+	res, _ := p1.Future().RecoverWith(p2.Future()).Join()
 
 	internal.AssertEqual(t, 2, res)
+}
+
+func TestFutureTimeout(t *testing.T) {
+	p := NewPromise[bool]()
+	go func() {
+		time.Sleep(time.Millisecond * 200)
+		p.Success(true)
+	}()
+	future := p.Future()
+
+	_, err := future.Get(time.Millisecond * 50)
+	internal.AssertErrorContains(t, err, "timeout")
+
+	_, err = future.Join()
+	internal.AssertErrorContains(t, err, "timeout")
 }

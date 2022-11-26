@@ -5,7 +5,6 @@ run:
 linters:
   disable-all: true
   enable:
-    - deadcode
     - dupl
     - errcheck
     - exportloopref
@@ -15,15 +14,16 @@ linters:
     - gocyclo
     - gofmt
     - goimports
+    - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
     - prealloc
     - revive
+    - staticcheck
     - typecheck
     - unconvert
-    - varcheck
 
 issues:
   exclude-rules:

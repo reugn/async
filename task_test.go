@@ -12,7 +12,7 @@ func TestTask(t *testing.T) {
 		time.Sleep(1 * time.Second)
 		return "ok", nil
 	})
-	res, err := task.Call().Get()
+	res, err := task.Call().Join()
 
 	internal.AssertEqual(t, "ok", res)
 	internal.AssertEqual(t, err, nil)

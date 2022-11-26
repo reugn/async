@@ -9,7 +9,7 @@ import (
 
 func main() {
 	future := asyncAction()
-	result, err := future.Get()
+	result, err := future.Join()
 	if err != nil {
 		log.Fatal(err)
 	}
