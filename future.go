@@ -50,7 +50,7 @@ var _ Future[any] = (*FutureImpl[any])(nil)
 // NewFuture returns a new Future.
 func NewFuture[T any]() Future[T] {
 	return &FutureImpl[T]{
-		done: make(chan interface{}),
+		done: make(chan interface{}, 1),
 	}
 }
 
@@ -71,7 +71,7 @@ func (fut *FutureImpl[T]) acceptTimeout(timeout time.Duration) {
 		case result := <-fut.done:
 			fut.setResult(result)
 		case <-timer.C:
-			fut.err = fmt.Errorf("Future timeout after %s", timeout)
+			fut.setResult(fmt.Errorf("Future timeout after %s", timeout))
 		}
 	})
 }

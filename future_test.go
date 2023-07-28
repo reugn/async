@@ -2,6 +2,9 @@ package async
 
 import (
 	"errors"
+	"fmt"
+	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -105,4 +108,37 @@ func TestFutureTimeout(t *testing.T) {
 
 	_, err = future.Join()
 	internal.AssertErrorContains(t, err, "timeout")
+}
+
+func TestFutureGoroutineLeak(t *testing.T) {
+	var wg sync.WaitGroup
+
+	fmt.Println(runtime.NumGoroutine())
+
+	numFuture := 100
+	for i := 0; i < numFuture; i++ {
+		promise := NewPromise[string]()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(time.Millisecond * 100)
+			promise.Success("OK")
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			fut := promise.Future()
+			_, _ = fut.Get(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 100)
+			_, _ = fut.Join()
+		}()
+	}
+
+	wg.Wait()
+	time.Sleep(time.Millisecond * 10)
+	numGoroutine := runtime.NumGoroutine()
+	fmt.Println(numGoroutine)
+	if numGoroutine > numFuture {
+		t.Fatalf("numGoroutine is %d", numGoroutine)
+	}
 }
