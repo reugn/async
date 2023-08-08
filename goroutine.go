@@ -1,17 +1,17 @@
 package async
 
 import (
-	"fmt"
-	"runtime/debug"
+	"bytes"
+	"runtime"
+	"strconv"
 )
 
 // GoroutineID returns the current goroutine id.
 func GoroutineID() (uint, error) {
-	var id uint
-	var prefix string
-	_, err := fmt.Sscanf(string(debug.Stack()), "%s %d", &prefix, &id)
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, err := strconv.ParseUint(string(b), 10, 64)
+	return uint(n), err
 }
