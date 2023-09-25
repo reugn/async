@@ -13,6 +13,25 @@ func AssertEqual[T any](t *testing.T, a, b T) {
 	}
 }
 
+// AssertElementsMatch checks whether the given slices contain the same elements.
+func AssertElementsMatch[T any](t *testing.T, a, b []T) {
+	if len(a) == len(b) {
+		count := 0
+		for _, va := range a {
+			for _, vb := range b {
+				if reflect.DeepEqual(va, vb) {
+					count++
+					break
+				}
+			}
+		}
+		if count == len(a) {
+			return
+		}
+	}
+	t.Fatalf("Slice elements are not equal: %v != %v", a, b)
+}
+
 // AssertErrorContains checks whether the given error contains the specified string.
 func AssertErrorContains(t *testing.T, err error, str string) {
 	if err == nil {

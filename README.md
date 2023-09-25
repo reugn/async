@@ -9,6 +9,7 @@
 Async is a synchronization and asynchronous computation package for Go.
 
 ## Overview
+* **ConcurrentMap** - Implements the generic `async.Map` interface in a thread-safe manner by delegating load/store operations to the underlying `sync.Map`.
 * **Future** - A placeholder object for a value that may not yet exist.
 * **Promise** - While futures are defined as a type of read-only placeholder object created for a result which doesn’t yet exist, a promise can be thought of as a writable, single-assignment container, which completes a future.
 * **Task** - A data type for controlling possibly lazy and asynchronous computations.
