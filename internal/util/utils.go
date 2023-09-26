@@ -1,8 +1,8 @@
-package internal
+package util
 
 import "math/rand"
 
-// Cas returns compare-and-set stamp value
+// Cas returns compare-and-set stamp value.
 func Cas() int64 {
 	return rand.Int63()
 }

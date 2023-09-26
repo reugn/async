@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 func TestFuture(t *testing.T) {
@@ -19,8 +19,8 @@ func TestFuture(t *testing.T) {
 	}()
 	res, err := p.Future().Join()
 
-	internal.AssertEqual(t, res, true)
-	internal.AssertEqual(t, err, nil)
+	assert.Equal(t, res, true)
+	assert.Equal(t, err, nil)
 }
 
 func TestFutureUtils(t *testing.T) {
@@ -39,7 +39,7 @@ func TestFutureUtils(t *testing.T) {
 	res := []interface{}{1, 2, 3}
 	futRes, _ := FutureSeq(arr).Join()
 
-	internal.AssertEqual(t, res, futRes)
+	assert.Equal(t, res, futRes)
 }
 
 func TestFutureFirstCompleted(t *testing.T) {
@@ -51,7 +51,7 @@ func TestFutureFirstCompleted(t *testing.T) {
 	timeout := FutureTimer[bool](time.Millisecond * 100)
 	futRes, futErr := FutureFirstCompletedOf(p.Future(), timeout).Join()
 
-	internal.AssertEqual(t, false, futRes)
+	assert.Equal(t, false, futRes)
 	if futErr == nil {
 		t.Fatalf("futErr is nil")
 	}
@@ -75,10 +75,10 @@ func TestFutureTransform(t *testing.T) {
 	})
 
 	res, _ := future.Get(time.Second * 5)
-	internal.AssertEqual(t, 3, res)
+	assert.Equal(t, 3, res)
 
 	res, _ = future.Join()
-	internal.AssertEqual(t, 3, res)
+	assert.Equal(t, 3, res)
 }
 
 func TestFutureFailure(t *testing.T) {
@@ -92,7 +92,7 @@ func TestFutureFailure(t *testing.T) {
 	}()
 	res, _ := p1.Future().RecoverWith(p2.Future()).Join()
 
-	internal.AssertEqual(t, 2, res)
+	assert.Equal(t, 2, res)
 }
 
 func TestFutureTimeout(t *testing.T) {
@@ -104,10 +104,10 @@ func TestFutureTimeout(t *testing.T) {
 	future := p.Future()
 
 	_, err := future.Get(time.Millisecond * 50)
-	internal.AssertErrorContains(t, err, "timeout")
+	assert.ErrorContains(t, err, "timeout")
 
 	_, err = future.Join()
-	internal.AssertErrorContains(t, err, "timeout")
+	assert.ErrorContains(t, err, "timeout")
 }
 
 func TestFutureGoroutineLeak(t *testing.T) {

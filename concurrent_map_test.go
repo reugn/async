@@ -7,98 +7,98 @@ import (
 	"testing"
 	"time"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 func TestClear(t *testing.T) {
 	m := prepareConcurrentMap()
 	m.Clear()
-	internal.AssertEqual(t, m.Size(), 0)
+	assert.Equal(t, m.Size(), 0)
 	m.Put(1, ptr("a"))
-	internal.AssertEqual(t, m.Size(), 1)
+	assert.Equal(t, m.Size(), 1)
 }
 
 func TestComputeIfAbsent(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(
+	assert.Equal(
 		t,
 		m.ComputeIfAbsent(4, func(_ int) *string { return ptr("d") }),
 		ptr("d"),
 	)
-	internal.AssertEqual(t, m.Size(), 4)
-	internal.AssertEqual(
+	assert.Equal(t, m.Size(), 4)
+	assert.Equal(
 		t,
 		m.ComputeIfAbsent(4, func(_ int) *string { return ptr("e") }),
 		ptr("d"),
 	)
-	internal.AssertEqual(t, m.Size(), 4)
+	assert.Equal(t, m.Size(), 4)
 }
 
 func TestContainsKey(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.ContainsKey(3), true)
-	internal.AssertEqual(t, m.ContainsKey(4), false)
+	assert.Equal(t, m.ContainsKey(3), true)
+	assert.Equal(t, m.ContainsKey(4), false)
 }
 
 func TestGet(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.Get(1), ptr("a"))
-	internal.AssertEqual(t, m.Get(4), nil)
+	assert.Equal(t, m.Get(1), ptr("a"))
+	assert.Equal(t, m.Get(4), nil)
 }
 
 func TestGetOrDefault(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.GetOrDefault(1, ptr("e")), ptr("a"))
-	internal.AssertEqual(t, m.GetOrDefault(5, ptr("e")), ptr("e"))
+	assert.Equal(t, m.GetOrDefault(1, ptr("e")), ptr("a"))
+	assert.Equal(t, m.GetOrDefault(5, ptr("e")), ptr("e"))
 }
 
 func TestIsEmpty(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.IsEmpty(), false)
+	assert.Equal(t, m.IsEmpty(), false)
 	m.Clear()
-	internal.AssertEqual(t, m.IsEmpty(), true)
+	assert.Equal(t, m.IsEmpty(), true)
 }
 
 func TestKeySet(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertElementsMatch(t, m.KeySet(), []int{1, 2, 3})
+	assert.ElementsMatch(t, m.KeySet(), []int{1, 2, 3})
 	m.Put(4, ptr("d"))
-	internal.AssertElementsMatch(t, m.KeySet(), []int{1, 2, 3, 4})
+	assert.ElementsMatch(t, m.KeySet(), []int{1, 2, 3, 4})
 }
 
 func TestPut(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.Size(), 3)
+	assert.Equal(t, m.Size(), 3)
 	m.Put(4, ptr("d"))
-	internal.AssertEqual(t, m.Size(), 4)
-	internal.AssertEqual(t, m.Get(4), ptr("d"))
+	assert.Equal(t, m.Size(), 4)
+	assert.Equal(t, m.Get(4), ptr("d"))
 	m.Put(4, ptr("e"))
-	internal.AssertEqual(t, m.Size(), 4)
-	internal.AssertEqual(t, m.Get(4), ptr("e"))
+	assert.Equal(t, m.Size(), 4)
+	assert.Equal(t, m.Get(4), ptr("e"))
 }
 
 func TestRemove(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.Remove(3), ptr("c"))
-	internal.AssertEqual(t, m.Size(), 2)
-	internal.AssertEqual(t, m.Remove(5), nil)
-	internal.AssertEqual(t, m.Size(), 2)
+	assert.Equal(t, m.Remove(3), ptr("c"))
+	assert.Equal(t, m.Size(), 2)
+	assert.Equal(t, m.Remove(5), nil)
+	assert.Equal(t, m.Size(), 2)
 }
 
 func TestSize(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertEqual(t, m.Size(), 3)
+	assert.Equal(t, m.Size(), 3)
 }
 
 func TestValues(t *testing.T) {
 	m := prepareConcurrentMap()
-	internal.AssertElementsMatch(
+	assert.ElementsMatch(
 		t,
 		m.Values(),
 		[]*string{ptr("a"), ptr("b"), ptr("c")},
 	)
 	m.Put(4, ptr("d"))
-	internal.AssertElementsMatch(
+	assert.ElementsMatch(
 		t,
 		m.Values(),
 		[]*string{ptr("a"), ptr("b"), ptr("c"), ptr("d")},
@@ -149,7 +149,7 @@ func TestMemoryLeaks(t *testing.T) {
 	var statsAfter runtime.MemStats
 	runtime.ReadMemStats(&statsAfter)
 
-	internal.AssertEqual(t, m.IsEmpty(), true)
+	assert.Equal(t, m.IsEmpty(), true)
 	if statsAfter.HeapObjects > statsBefore.HeapObjects+50 {
 		t.Error("HeapObjects leak")
 	}

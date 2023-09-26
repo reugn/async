@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 func TestTask(t *testing.T) {
@@ -14,6 +14,6 @@ func TestTask(t *testing.T) {
 	})
 	res, err := task.Call().Join()
 
-	internal.AssertEqual(t, "ok", res)
-	internal.AssertEqual(t, err, nil)
+	assert.Equal(t, "ok", res)
+	assert.Equal(t, err, nil)
 }
