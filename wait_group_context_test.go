@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 func TestWaitGroupContext(t *testing.T) {
@@ -31,7 +31,7 @@ func TestWaitGroupContext(t *testing.T) {
 	wgc.Wait()
 	time.Sleep(time.Millisecond * 10)
 
-	internal.AssertEqual(t, result, 6)
+	assert.Equal(t, result, 6)
 }
 
 func TestWaitGroupContextCanceled(t *testing.T) {
@@ -63,7 +63,7 @@ func TestWaitGroupContextCanceled(t *testing.T) {
 	wgc.Wait()
 	time.Sleep(time.Millisecond * 10)
 
-	internal.AssertEqual(t, result, 111)
+	assert.Equal(t, result, 111)
 }
 
 func TestWaitGroupContextPanic(t *testing.T) {
@@ -71,5 +71,5 @@ func TestWaitGroupContextPanic(t *testing.T) {
 		wgc := NewWaitGroupContext(context.Background())
 		wgc.Add(-2)
 	}
-	internal.AssertPanic(t, negativeCounter)
+	assert.Panic(t, negativeCounter)
 }

@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/util"
 )
 
 const (
@@ -38,7 +38,7 @@ func (o *OptimisticLock) Lock() {
 
 // Unlock unlocks the resource after write.
 func (o *OptimisticLock) Unlock() {
-	atomic.StoreInt64(&o.stamp, internal.Cas())
+	atomic.StoreInt64(&o.stamp, util.Cas())
 	atomic.StoreInt32(&o.status, lockStatusSteady)
 	o.rw.Unlock()
 }

@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 func TestOnce(t *testing.T) {
@@ -18,7 +18,7 @@ func TestOnce(t *testing.T) {
 			return count, nil
 		})
 	}
-	internal.AssertEqual(t, count, 1)
+	assert.Equal(t, count, 1)
 }
 
 func TestOnceConcurrent(t *testing.T) {
@@ -38,7 +38,7 @@ func TestOnceConcurrent(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	internal.AssertEqual(t, count, 1)
+	assert.Equal(t, count, 1)
 }
 
 func TestOncePanic(t *testing.T) {
@@ -52,6 +52,6 @@ func TestOncePanic(t *testing.T) {
 			return count, nil
 		})
 	}
-	internal.AssertEqual(t, err.Error(), "recovered runtime error: integer divide by zero")
-	internal.AssertEqual(t, count, 0)
+	assert.Equal(t, err.Error(), "recovered runtime error: integer divide by zero")
+	assert.Equal(t, count, 0)
 }

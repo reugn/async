@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 type synchronizedAdder struct {
@@ -67,7 +67,7 @@ func TestPacker1(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	internal.AssertEqual(t, 30, adder.Value())
+	assert.Equal(t, 30, adder.Value())
 }
 
 func TestPacker2(t *testing.T) {
@@ -81,5 +81,5 @@ func TestPacker2(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	internal.AssertEqual(t, 60, adder.Value())
+	assert.Equal(t, 60, adder.Value())
 }

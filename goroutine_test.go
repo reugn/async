@@ -3,13 +3,13 @@ package async
 import (
 	"testing"
 
-	"github.com/reugn/async/internal"
+	"github.com/reugn/async/internal/assert"
 )
 
 func TestGoroutineID(t *testing.T) {
 	gid, err := GoroutineID()
 
-	internal.AssertEqual(t, nil, err)
+	assert.Equal(t, nil, err)
 	t.Log(gid)
 }
 
