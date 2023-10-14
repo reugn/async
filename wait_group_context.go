@@ -20,10 +20,8 @@ type WaitGroupContext struct {
 // NewWaitGroupContext returns a new WaitGroupContext with Context ctx.
 func NewWaitGroupContext(ctx context.Context) *WaitGroupContext {
 	return &WaitGroupContext{
-		ctx:     ctx,
-		done:    make(chan struct{}),
-		counter: 0,
-		state:   0,
+		ctx:  ctx,
+		done: make(chan struct{}),
 	}
 }
 
