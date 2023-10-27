@@ -16,7 +16,6 @@ Async is a synchronization and asynchronous computation package for Go.
 * **Once** - An object similar to sync.Once having the Do method taking `f func() (T, error)` and returning `(T, error)`.
 * **WaitGroupContext** - A WaitGroup with the `context.Context` support for graceful unblocking.
 * **Reentrant Lock** - Mutex that allows goroutines to enter into the lock on a resource more than once.
-* **Optimistic Lock** - Mutex that allows optimistic reading. Could be retried or switched to RLock in case of failure. Significantly improves performance in case of frequent reads and short writes. See [benchmarks](./benchmarks/README.md).
 
 ## Examples
 Can be found in the examples directory/tests.
