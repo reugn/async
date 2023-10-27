@@ -16,17 +16,16 @@ import (
 // sets of keys. In these two cases, use of a sync.Map may significantly reduce lock
 // contention compared to a Go map paired with a separate sync.Mutex or sync.RWMutex.
 type ConcurrentMap[K comparable, V any] struct {
-	m        *atomic.Value // TODO: use atomic.Pointer when upgrading to/past go1.19
-	size     int64
-	clearing int32 // TODO: use atomic.Bool when upgrading to/past go1.19
-	_        noCopy
+	m        *atomic.Pointer[sync.Map]
+	size     atomic.Int64
+	clearing atomic.Bool
 }
 
 var _ Map[int, any] = (*ConcurrentMap[int, any])(nil)
 
 // NewConcurrentMap returns a new ConcurrentMap instance.
 func NewConcurrentMap[K comparable, V any]() *ConcurrentMap[K, V] {
-	var underlying atomic.Value
+	var underlying atomic.Pointer[sync.Map]
 	underlying.Store(&sync.Map{})
 	return &ConcurrentMap[K, V]{
 		m: &underlying,
@@ -35,10 +34,10 @@ func NewConcurrentMap[K comparable, V any]() *ConcurrentMap[K, V] {
 
 // Clear removes all of the mappings from this map.
 func (cm *ConcurrentMap[K, V]) Clear() {
-	atomic.StoreInt32(&cm.clearing, 1)
-	defer atomic.StoreInt32(&cm.clearing, 0)
-	_ = cm.m.Swap(&sync.Map{})
-	atomic.StoreInt64(&cm.size, 0)
+	cm.clearing.Store(true)
+	defer cm.clearing.Store(false)
+	cm.m.Store(&sync.Map{})
+	cm.size.Store(0)
 }
 
 // ComputeIfAbsent attempts to compute a value using the given mapping
@@ -49,7 +48,7 @@ func (cm *ConcurrentMap[K, V]) ComputeIfAbsent(key K, mappingFunction func(K) *V
 	if value == nil {
 		computed, loaded := cm.smap().LoadOrStore(key, mappingFunction(key))
 		if !loaded {
-			atomic.AddInt64(&cm.size, 1)
+			cm.size.Add(1)
 		}
 		return computed.(*V)
 	}
@@ -100,12 +99,9 @@ func (cm *ConcurrentMap[K, V]) KeySet() []K {
 
 // Put associates the specified value with the specified key in this map.
 func (cm *ConcurrentMap[K, V]) Put(key K, value *V) {
-	// TODO: use sync.Map.Swap when upgrading to/past go1.20
-	_, loaded := cm.smap().LoadOrStore(key, value)
+	_, loaded := cm.smap().Swap(key, value)
 	if !loaded {
-		atomic.AddInt64(&cm.size, 1)
-	} else {
-		cm.smap().Store(key, value)
+		cm.size.Add(1)
 	}
 }
 
@@ -116,13 +112,13 @@ func (cm *ConcurrentMap[K, V]) Remove(key K) *V {
 	if !loaded {
 		return nil
 	}
-	atomic.AddInt64(&cm.size, -1)
+	cm.size.Add(-1)
 	return value.(*V)
 }
 
 // Size returns the number of key-value mappings in this map.
 func (cm *ConcurrentMap[K, V]) Size() int {
-	size := atomic.LoadInt64(&cm.size)
+	size := cm.size.Load()
 	if size > 0 {
 		return int(size)
 	}
@@ -142,11 +138,10 @@ func (cm *ConcurrentMap[K, V]) Values() []*V {
 
 func (cm *ConcurrentMap[K, V]) smap() *sync.Map {
 	for {
-		c := atomic.LoadInt32(&cm.clearing)
-		if c == 0 {
+		if !cm.clearing.Load() {
 			break
 		}
 		time.Sleep(time.Nanosecond)
 	}
-	return cm.m.Load().(*sync.Map)
+	return cm.m.Load()
 }
