@@ -14,6 +14,7 @@ Async is a synchronization and asynchronous computation package for Go.
 * **Promise** - While futures are defined as a type of read-only placeholder object created for a result which doesn’t yet exist, a promise can be thought of as a writable, single-assignment container, which completes a future.
 * **Task** - A data type for controlling possibly lazy and asynchronous computations.
 * **Once** - An object similar to sync.Once having the Do method taking `f func() (T, error)` and returning `(T, error)`.
+* **Value** - An object similar to atomic.Value, but without the consistent type constraint.
 * **WaitGroupContext** - A WaitGroup with the `context.Context` support for graceful unblocking.
 * **Reentrant Lock** - Mutex that allows goroutines to enter into the lock on a resource more than once.
 
