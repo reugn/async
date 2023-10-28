@@ -8,78 +8,77 @@ import (
 )
 
 type synchronizedAdder struct {
+	ReentrantLock
 	value int
-	lock  *ReentrantLock
 }
 
-func newSynchronizedAdder() *synchronizedAdder {
-	return &synchronizedAdder{
-		lock: NewReentrantLock(),
-	}
-}
-
-func (sa *synchronizedAdder) Value() int {
+func (sa *synchronizedAdder) getValue() int {
+	sa.Lock()
+	defer sa.Unlock()
 	return sa.value
 }
 
 func (sa *synchronizedAdder) addOne() {
-	sa.lock.Lock()
-	defer sa.lock.Unlock()
+	sa.Lock()
+	defer sa.Unlock()
 	sa.value++
 }
 
 func (sa *synchronizedAdder) addTwo() {
-	sa.lock.Lock()
-	defer sa.lock.Unlock()
-	sa.value += 2
+	sa.Lock()
+	defer sa.Unlock()
+	sa.value++
+	sa.addOne()
 }
 
 func (sa *synchronizedAdder) addThree() {
-	sa.lock.Lock()
-	defer sa.lock.Unlock()
-	sa.value += 3
+	sa.Lock()
+	defer sa.Unlock()
+	sa.value++
+	sa.addTwo()
 }
 
 func (sa *synchronizedAdder) addFour() {
-	sa.lock.Lock()
-	defer sa.lock.Unlock()
-	sa.value += 4
+	sa.Lock()
+	defer sa.Unlock()
+	sa.value++
 	sa.addThree()
 }
 
 func (sa *synchronizedAdder) addFive() {
-	sa.lock.Lock()
-	defer sa.lock.Unlock()
-	sa.value += 5
+	sa.Lock()
+	defer sa.Unlock()
+	sa.value++
 	sa.addFour()
 }
 
-func TestPacker1(t *testing.T) {
-	adder := newSynchronizedAdder()
+func Test_synchronizedAdder1(t *testing.T) {
+	adder := &synchronizedAdder{}
 	var wg sync.WaitGroup
 	wg.Add(5)
 	for i := 0; i < 5; i++ {
 		go func() {
+			defer wg.Done()
 			adder.addOne()
 			adder.addTwo()
 			adder.addThree()
-			wg.Done()
+			adder.addFour()
 		}()
 	}
 	wg.Wait()
-	assert.Equal(t, 30, adder.Value())
+	assert.Equal(t, 50, adder.getValue())
 }
 
-func TestPacker2(t *testing.T) {
-	adder := newSynchronizedAdder()
+func Test_synchronizedAdder2(t *testing.T) {
+	adder := &synchronizedAdder{}
 	var wg sync.WaitGroup
 	wg.Add(5)
 	for i := 0; i < 5; i++ {
 		go func() {
+			defer wg.Done()
 			adder.addFive()
-			wg.Done()
 		}()
 	}
 	wg.Wait()
-	assert.Equal(t, 60, adder.Value())
+	assert.Equal(t, 25, adder.getValue())
 }
