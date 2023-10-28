@@ -1,75 +1,61 @@
 package async
 
-import "sync"
+import (
+	"sync"
+)
 
 // ReentrantLock allows goroutines to enter the lock more than once.
+// Implements the sync.Locker interface.
+//
+// A ReentrantLock must not be copied after first use.
 type ReentrantLock struct {
-	g           *sync.Mutex
-	l           *sync.Mutex
-	goroutineID uint
-	counter     uint
-	lockBalance int
+	outer     sync.Mutex
+	inner     sync.Mutex
+	goroutine uint64
+	depth     int32
 }
 
-// NewReentrantLock returns a new ReentrantLock.
-func NewReentrantLock() *ReentrantLock {
-	return &ReentrantLock{
-		g:           &sync.Mutex{},
-		l:           &sync.Mutex{},
-		lockBalance: 1,
-	}
-}
+var _ sync.Locker = (*ReentrantLock)(nil)
 
 // Lock locks the resource.
 // Panics if the GoroutineID call returns an error.
 func (r *ReentrantLock) Lock() {
-	curr, err := GoroutineID()
+	r.inner.Lock()
+
+	current, err := GoroutineID()
 	if err != nil {
 		panic("async: Error on GoroutineID call")
 	}
-loop:
-	for {
-		r.l.Lock()
-		switch r.goroutineID {
-		case 0:
-			// first time lock
-			r.handleLock()
-			r.goroutineID = curr
-			r.counter++
-			break loop
-		case curr:
-			// reentrant lock request
-			r.counter++
-			break loop
-		default:
-			// another goroutine lock request
-			r.lockBalance--
-			r.l.Unlock()
-			r.g.Lock()
-		}
+
+	switch r.goroutine {
+	case current:
+		// reentrant lock request
+		r.depth++
+		r.inner.Unlock()
+	default:
+		// initial or another goroutine lock request
+		r.init(current)
 	}
-	r.l.Unlock()
 }
 
-func (r *ReentrantLock) handleLock() {
-	if r.lockBalance > 0 {
-		r.lockBalance--
-		r.g.Lock()
-	}
+func (r *ReentrantLock) init(goroutine uint64) {
+	r.inner.Unlock()
+	r.outer.Lock()
+	r.inner.Lock()
+	r.goroutine = goroutine
+	r.depth = 1
+	r.inner.Unlock()
 }
 
 // Unlock unlocks the resource.
 // Panics on trying to unlock the unlocked lock.
 func (r *ReentrantLock) Unlock() {
-	r.l.Lock()
-	defer r.l.Unlock()
-	if r.counter == 0 && r.goroutineID == 0 {
-		panic("async: Unlock of unlocked ReentrantLock")
-	}
-	r.counter--
-	if r.counter == 0 {
-		r.goroutineID = 0
-		r.lockBalance++
-		r.g.Unlock()
+	r.inner.Lock()
+	defer r.inner.Unlock()
+
+	r.depth--
+	if r.depth == 0 {
+		r.goroutine = 0
+		r.outer.Unlock()
 	}
 }
