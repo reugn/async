@@ -13,8 +13,8 @@ import (
 type WaitGroupContext struct {
 	ctx     context.Context
 	done    chan struct{}
-	counter int32
-	state   int32
+	counter atomic.Int32
+	state   atomic.Int32
 }
 
 // NewWaitGroupContext returns a new WaitGroupContext with Context ctx.
@@ -29,10 +29,10 @@ func NewWaitGroupContext(ctx context.Context) *WaitGroupContext {
 // If the counter becomes zero, all goroutines blocked on Wait are released.
 // If the counter goes negative, Add panics.
 func (wgc *WaitGroupContext) Add(delta int) {
-	counter := atomic.AddInt32(&wgc.counter, int32(delta))
-	if counter == 0 && atomic.CompareAndSwapInt32(&wgc.state, 0, 1) {
+	counter := wgc.counter.Add(int32(delta))
+	if counter == 0 && wgc.state.CompareAndSwap(0, 1) {
 		wgc.release()
-	} else if counter < 0 && atomic.LoadInt32(&wgc.state) == 0 {
+	} else if counter < 0 && wgc.state.Load() == 0 {
 		panic("async: negative WaitGroupContext counter")
 	}
 }

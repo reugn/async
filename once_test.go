@@ -23,7 +23,7 @@ func TestOnce(t *testing.T) {
 
 func TestOnceConcurrent(t *testing.T) {
 	var once Once[int32]
-	var count int32
+	var count atomic.Int32
 	var wg sync.WaitGroup
 
 	for i := 0; i < 10; i++ {
@@ -31,14 +31,14 @@ func TestOnceConcurrent(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			result, _ := once.Do(func() (int32, error) {
-				newCount := atomic.AddInt32(&count, 1)
+				newCount := count.Add(1)
 				return newCount, nil
 			})
-			atomic.StoreInt32(&count, result)
+			count.Store(result)
 		}()
 	}
 	wg.Wait()
-	assert.Equal(t, count, 1)
+	assert.Equal(t, int(count.Load()), 1)
 }
 
 func TestOncePanic(t *testing.T) {
