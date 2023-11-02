@@ -39,7 +39,7 @@ type Future[T any] interface {
 type FutureImpl[T any] struct {
 	acceptOnce   sync.Once
 	completeOnce sync.Once
-	done         chan interface{}
+	done         chan any
 	value        T
 	err          error
 }
@@ -50,7 +50,7 @@ var _ Future[any] = (*FutureImpl[any])(nil)
 // NewFuture returns a new Future.
 func NewFuture[T any]() Future[T] {
 	return &FutureImpl[T]{
-		done: make(chan interface{}, 1),
+		done: make(chan any, 1),
 	}
 }
 
@@ -77,7 +77,7 @@ func (fut *FutureImpl[T]) acceptTimeout(timeout time.Duration) {
 }
 
 // setResult assigns a value to the Future instance.
-func (fut *FutureImpl[T]) setResult(result interface{}) {
+func (fut *FutureImpl[T]) setResult(result any) {
 	switch value := result.(type) {
 	case error:
 		fut.err = value

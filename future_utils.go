@@ -6,10 +6,10 @@ import (
 )
 
 // FutureSeq reduces many Futures into a single Future.
-func FutureSeq[T any](futures []Future[T]) Future[[]interface{}] {
-	next := NewFuture[[]interface{}]()
+func FutureSeq[T any](futures []Future[T]) Future[[]any] {
+	next := NewFuture[[]any]()
 	go func() {
-		seq := make([]interface{}, len(futures))
+		seq := make([]any, len(futures))
 		for i, future := range futures {
 			res, err := future.Join()
 			if err != nil {
@@ -23,8 +23,9 @@ func FutureSeq[T any](futures []Future[T]) Future[[]interface{}] {
 	return next
 }
 
-// FutureFirstCompletedOf asynchronously returns a new Future to the result of the first Future
-// in the list that is completed. This means no matter if it is completed as a success or as a failure.
+// FutureFirstCompletedOf asynchronously returns a new Future to the result
+// of the first Future in the list that is completed.
+// This means no matter if it is completed as a success or as a failure.
 func FutureFirstCompletedOf[T any](futures ...Future[T]) Future[T] {
 	next := NewFuture[T]()
 	go func() {
