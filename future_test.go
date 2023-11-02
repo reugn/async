@@ -36,7 +36,7 @@ func TestFutureUtils(t *testing.T) {
 		p3.Success(3)
 	}()
 	arr := []Future[int]{p1.Future(), p2.Future(), p3.Future()}
-	res := []interface{}{1, 2, 3}
+	res := []any{1, 2, 3}
 	futRes, _ := FutureSeq(arr).Join()
 
 	assert.Equal(t, res, futRes)

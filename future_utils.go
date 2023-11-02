@@ -6,10 +6,10 @@ import (
 )
 
 // FutureSeq reduces many Futures into a single Future.
-func FutureSeq[T any](futures []Future[T]) Future[[]interface{}] {
-	next := NewFuture[[]interface{}]()
+func FutureSeq[T any](futures []Future[T]) Future[[]any] {
+	next := NewFuture[[]any]()
 	go func() {
-		seq := make([]interface{}, len(futures))
+		seq := make([]any, len(futures))
 		for i, future := range futures {
 			res, err := future.Join()
 			if err != nil {
