@@ -23,8 +23,9 @@ func FutureSeq[T any](futures []Future[T]) Future[[]any] {
 	return next
 }
 
-// FutureFirstCompletedOf asynchronously returns a new Future to the result of the first Future
-// in the list that is completed. This means no matter if it is completed as a success or as a failure.
+// FutureFirstCompletedOf asynchronously returns a new Future to the result
+// of the first Future in the list that is completed.
+// This means no matter if it is completed as a success or as a failure.
 func FutureFirstCompletedOf[T any](futures ...Future[T]) Future[T] {
 	next := NewFuture[T]()
 	go func() {
