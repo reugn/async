@@ -2,11 +2,12 @@ package async
 
 import "sync"
 
-// Promise represents a writable, single-assignment container, which completes a Future.
+// Promise represents a writable, single-assignment container,
+// which completes a Future.
 type Promise[T any] interface {
 
 	// Success completes the underlying Future with a value.
-	Success(T)
+	Success(*T)
 
 	// Failure fails the underlying Future with an error.
 	Failure(error)
@@ -41,7 +42,7 @@ func NewPromise[T any]() Promise[T] {
 }
 
 // Success completes the underlying Future with a given value.
-func (p *PromiseImpl[T]) Success(value T) {
+func (p *PromiseImpl[T]) Success(value *T) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -57,8 +58,7 @@ func (p *PromiseImpl[T]) Failure(err error) {
 	defer p.Unlock()
 
 	if p.status != completed {
-		var nilT T
-		p.future.complete(nilT, err)
+		p.future.complete(nil, err)
 		p.status = completed
 	}
 }
