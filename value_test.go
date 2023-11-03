@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/reugn/async/internal/assert"
+	"github.com/reugn/async/internal/util"
 )
 
 //nolint:funlen
@@ -47,14 +48,14 @@ func TestValueCompareAndSwap(t *testing.T) {
 	assert.Equal(t, swapped, true)
 	assert.Equal(t, value.Load(), "a")
 
-	stringPointer := ptr("b")
+	stringPointer := util.Ptr("b")
 	swapped = value.CompareAndSwap("a", stringPointer)
 	assert.Equal(t, swapped, true)
 	if value.Load() != stringPointer {
 		t.Fail()
 	}
 
-	swapped = value.CompareAndSwap(ptr("b"), "c")
+	swapped = value.CompareAndSwap(util.Ptr("b"), "c")
 	assert.Equal(t, swapped, false)
 	if value.Load() != stringPointer {
 		t.Fail()
@@ -83,7 +84,7 @@ func TestValueStore(t *testing.T) {
 	value.Store("a")
 	assert.Equal(t, value.Load(), "a")
 
-	stringPointer := ptr("b")
+	stringPointer := util.Ptr("b")
 	value.Store(stringPointer)
 	if value.Load() != stringPointer {
 		t.Fail()
@@ -100,7 +101,7 @@ func TestValueSwap(t *testing.T) {
 	old = value.Swap("a")
 	assert.Equal(t, old, 1)
 
-	stringPointer := ptr("b")
+	stringPointer := util.Ptr("b")
 	old = value.Swap(stringPointer)
 	assert.Equal(t, old, "a")
 	if value.Load() != stringPointer {
