@@ -7,32 +7,37 @@ import (
 )
 
 // Future represents a value which may or may not currently be available,
-// but will be available at some point, or an error if that value could not be made available.
+// but will be available at some point, or an error if that value could
+// not be made available.
 type Future[T any] interface {
 
-	// Map creates a new Future by applying a function to the successful result of this Future.
-	Map(func(T) (T, error)) Future[T]
+	// Map creates a new Future by applying a function to the successful
+	// result of this Future.
+	Map(func(*T) (*T, error)) Future[T]
 
-	// FlatMap creates a new Future by applying a function to the successful result of
-	// this Future.
-	FlatMap(func(T) (Future[T], error)) Future[T]
+	// FlatMap creates a new Future by applying a function to the successful
+	// result of this Future.
+	FlatMap(func(*T) (Future[T], error)) Future[T]
 
-	// Join blocks until the Future is completed and returns either a result or an error.
-	Join() (T, error)
+	// Join blocks until the Future is completed and returns either a result
+	// or an error.
+	Join() (*T, error)
 
-	// Get blocks for at most the given time duration for this Future to complete
-	// and returns either a result or an error.
-	Get(time.Duration) (T, error)
+	// Get blocks for at most the given time duration for this Future to
+	// complete and returns either a result or an error.
+	Get(time.Duration) (*T, error)
 
-	// Recover handles any error that this Future might contain using a resolver function.
-	Recover(func() (T, error)) Future[T]
+	// Recover handles any error that this Future might contain using a
+	// resolver function.
+	Recover(func() (*T, error)) Future[T]
 
-	// RecoverWith handles any error that this Future might contain using another Future.
+	// RecoverWith handles any error that this Future might contain using
+	// another Future.
 	RecoverWith(Future[T]) Future[T]
 
 	// complete completes the Future with either a value or an error.
 	// Is used by Promise internally.
-	complete(T, error)
+	complete(*T, error)
 }
 
 // FutureImpl implements the Future interface.
@@ -40,7 +45,7 @@ type FutureImpl[T any] struct {
 	acceptOnce   sync.Once
 	completeOnce sync.Once
 	done         chan any
-	value        T
+	value        *T
 	err          error
 }
 
@@ -62,7 +67,8 @@ func (fut *FutureImpl[T]) accept() {
 	})
 }
 
-// acceptTimeout blocks once, until the Future result is available or until the timeout expires.
+// acceptTimeout blocks once, until the Future result is available or until
+// the timeout expires.
 func (fut *FutureImpl[T]) acceptTimeout(timeout time.Duration) {
 	fut.acceptOnce.Do(func() {
 		timer := time.NewTimer(timeout)
@@ -82,19 +88,18 @@ func (fut *FutureImpl[T]) setResult(result any) {
 	case error:
 		fut.err = value
 	default:
-		fut.value = value.(T)
+		fut.value = value.(*T)
 	}
 }
 
-// Map creates a new Future by applying a function to the successful result of this Future
-// and returns the result of the function as a new Future.
-func (fut *FutureImpl[T]) Map(f func(T) (T, error)) Future[T] {
+// Map creates a new Future by applying a function to the successful result
+// of this Future and returns the result of the function as a new Future.
+func (fut *FutureImpl[T]) Map(f func(*T) (*T, error)) Future[T] {
 	next := NewFuture[T]()
 	go func() {
 		fut.accept()
 		if fut.err != nil {
-			var nilT T
-			next.complete(nilT, fut.err)
+			next.complete(nil, fut.err)
 		} else {
 			next.complete(f(fut.value))
 		}
@@ -102,20 +107,18 @@ func (fut *FutureImpl[T]) Map(f func(T) (T, error)) Future[T] {
 	return next
 }
 
-// FlatMap creates a new Future by applying a function to the successful result of
-// this Future and returns the result of the function as a new Future.
-func (fut *FutureImpl[T]) FlatMap(f func(T) (Future[T], error)) Future[T] {
+// FlatMap creates a new Future by applying a function to the successful result
+// of this Future and returns the result of the function as a new Future.
+func (fut *FutureImpl[T]) FlatMap(f func(*T) (Future[T], error)) Future[T] {
 	next := NewFuture[T]()
 	go func() {
 		fut.accept()
 		if fut.err != nil {
-			var nilT T
-			next.complete(nilT, fut.err)
+			next.complete(nil, fut.err)
 		} else {
 			tfut, terr := f(fut.value)
 			if terr != nil {
-				var nilT T
-				next.complete(nilT, terr)
+				next.complete(nil, terr)
 			} else {
 				next.complete(tfut.Join())
 			}
@@ -124,22 +127,24 @@ func (fut *FutureImpl[T]) FlatMap(f func(T) (Future[T], error)) Future[T] {
 	return next
 }
 
-// Join blocks until the Future is completed and returns either a result or an error.
-func (fut *FutureImpl[T]) Join() (T, error) {
+// Join blocks until the Future is completed and returns either
+// a result or an error.
+func (fut *FutureImpl[T]) Join() (*T, error) {
 	fut.accept()
 	return fut.value, fut.err
 }
 
-// Get blocks for at most the given time duration for this Future to complete
-// and returns either a result or an error.
-func (fut *FutureImpl[T]) Get(timeout time.Duration) (T, error) {
+// Get blocks for at most the given time duration for this Future to
+// complete and returns either a result or an error.
+func (fut *FutureImpl[T]) Get(timeout time.Duration) (*T, error) {
 	fut.acceptTimeout(timeout)
 	return fut.value, fut.err
 }
 
-// Recover handles any error that this Future might contain using a given resolver function.
+// Recover handles any error that this Future might contain using
+// a given resolver function.
 // Returns the result as a new Future.
-func (fut *FutureImpl[T]) Recover(f func() (T, error)) Future[T] {
+func (fut *FutureImpl[T]) Recover(f func() (*T, error)) Future[T] {
 	next := NewFuture[T]()
 	go func() {
 		fut.accept()
@@ -152,7 +157,8 @@ func (fut *FutureImpl[T]) Recover(f func() (T, error)) Future[T] {
 	return next
 }
 
-// RecoverWith handles any error that this Future might contain using another Future.
+// RecoverWith handles any error that this Future might contain using
+// another Future.
 // Returns the result as a new Future.
 func (fut *FutureImpl[T]) RecoverWith(rf Future[T]) Future[T] {
 	next := NewFuture[T]()
@@ -168,7 +174,7 @@ func (fut *FutureImpl[T]) RecoverWith(rf Future[T]) Future[T] {
 }
 
 // complete completes the Future with either a value or an error.
-func (fut *FutureImpl[T]) complete(value T, err error) {
+func (fut *FutureImpl[T]) complete(value *T, err error) {
 	fut.completeOnce.Do(func() {
 		go func() {
 			if err != nil {

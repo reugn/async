@@ -1,12 +1,13 @@
 package async
 
-// Task is a data type for controlling possibly lazy & asynchronous computations.
+// Task is a data type for controlling possibly lazy and
+// asynchronous computations.
 type Task[T any] struct {
-	taskFunc func() (T, error)
+	taskFunc func() (*T, error)
 }
 
 // NewTask returns a new Task.
-func NewTask[T any](taskFunc func() (T, error)) *Task[T] {
+func NewTask[T any](taskFunc func() (*T, error)) *Task[T] {
 	return &Task[T]{
 		taskFunc: taskFunc,
 	}

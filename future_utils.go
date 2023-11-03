@@ -6,6 +6,7 @@ import (
 )
 
 // FutureSeq reduces many Futures into a single Future.
+// The resulting array may contain both *T values and errors.
 func FutureSeq[T any](futures []Future[T]) Future[[]any] {
 	next := NewFuture[[]any]()
 	go func() {
@@ -18,7 +19,7 @@ func FutureSeq[T any](futures []Future[T]) Future[[]any] {
 				seq[i] = res
 			}
 		}
-		next.complete(seq, nil)
+		next.complete(&seq, nil)
 	}()
 	return next
 }
@@ -45,8 +46,7 @@ func FutureTimer[T any](d time.Duration) Future[T] {
 	go func() {
 		timer := time.NewTimer(d)
 		<-timer.C
-		var nilT T
-		next.complete(nilT, fmt.Errorf("FutureTimer %s timeout", d))
+		next.complete(nil, fmt.Errorf("FutureTimer %s timeout", d))
 	}()
 	return next
 }

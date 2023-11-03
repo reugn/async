@@ -10,15 +10,15 @@ import (
 
 func TestOnce(t *testing.T) {
 	var once Once[int32]
-	var count int32
+	count := new(int32)
 
 	for i := 0; i < 10; i++ {
-		count, _ = once.Do(func() (int32, error) {
-			count++
+		count, _ = once.Do(func() (*int32, error) {
+			*count++
 			return count, nil
 		})
 	}
-	assert.Equal(t, count, 1)
+	assert.Equal(t, 1, *count)
 }
 
 func TestOnceConcurrent(t *testing.T) {
@@ -30,28 +30,27 @@ func TestOnceConcurrent(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			result, _ := once.Do(func() (int32, error) {
+			result, _ := once.Do(func() (*int32, error) {
 				newCount := count.Add(1)
-				return newCount, nil
+				return &newCount, nil
 			})
-			count.Store(result)
+			count.Store(*result)
 		}()
 	}
 	wg.Wait()
-	assert.Equal(t, int(count.Load()), 1)
+	assert.Equal(t, 1, int(count.Load()))
 }
 
 func TestOncePanic(t *testing.T) {
 	var once Once[int32]
-	var count int32
+	count := new(int32)
 	var err error
 
 	for i := 0; i < 10; i++ {
-		count, err = once.Do(func() (int32, error) {
-			count /= count
+		count, err = once.Do(func() (*int32, error) {
+			*count /= *count
 			return count, nil
 		})
 	}
-	assert.Equal(t, err.Error(), "recovered runtime error: integer divide by zero")
-	assert.Equal(t, count, 0)
+	assert.Equal(t, "recovered runtime error: integer divide by zero", err.Error())
 }

@@ -9,7 +9,7 @@ import (
 // Any subsequent call will return the previous result.
 type Once[T any] struct {
 	runOnce sync.Once
-	result  T
+	result  *T
 	err     error
 }
 
@@ -27,7 +27,7 @@ type Once[T any] struct {
 //
 // If f panics, Do considers it to have returned; future calls of Do return
 // without calling f
-func (o *Once[T]) Do(f func() (T, error)) (T, error) {
+func (o *Once[T]) Do(f func() (*T, error)) (*T, error) {
 	o.runOnce.Do(func() {
 		defer func() {
 			if err := recover(); err != nil {
