@@ -16,12 +16,12 @@ func TestWaitGroupContext(t *testing.T) {
 
 	go func() {
 		defer wgc.Done()
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(10 * time.Millisecond)
 		result.Add(1)
 	}()
 	go func() {
 		defer wgc.Done()
-		time.Sleep(time.Millisecond * 20)
+		time.Sleep(20 * time.Millisecond)
 		result.Add(2)
 	}()
 	go func() {
@@ -30,7 +30,7 @@ func TestWaitGroupContext(t *testing.T) {
 	}()
 
 	wgc.Wait()
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(10 * time.Millisecond)
 
 	assert.Equal(t, int(result.Load()), 6)
 }
@@ -39,7 +39,7 @@ func TestWaitGroupContextCanceled(t *testing.T) {
 	var result atomic.Int32
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	go func() {
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(100 * time.Millisecond)
 		result.Add(10)
 		cancelFunc()
 	}()
@@ -48,12 +48,12 @@ func TestWaitGroupContextCanceled(t *testing.T) {
 
 	go func() {
 		defer wgc.Done()
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(10 * time.Millisecond)
 		result.Add(1)
 	}()
 	go func() {
 		defer wgc.Done()
-		time.Sleep(time.Millisecond * 300)
+		time.Sleep(300 * time.Millisecond)
 		result.Add(2)
 	}()
 	go func() {
@@ -62,7 +62,7 @@ func TestWaitGroupContextCanceled(t *testing.T) {
 	}()
 
 	wgc.Wait()
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(10 * time.Millisecond)
 
 	assert.Equal(t, int(result.Load()), 111)
 }
