@@ -11,17 +11,16 @@ import (
 // time, Wait can be used to block until all goroutines have finished or the
 // given context is done.
 type WaitGroupContext struct {
-	ctx     context.Context
-	done    chan struct{}
-	counter atomic.Int32
-	state   atomic.Int32
+	ctx   context.Context
+	sem   chan struct{}
+	state atomic.Uint64 // high 32 bits are counter, low 32 bits are waiter count.
 }
 
 // NewWaitGroupContext returns a new WaitGroupContext with Context ctx.
 func NewWaitGroupContext(ctx context.Context) *WaitGroupContext {
 	return &WaitGroupContext{
-		ctx:  ctx,
-		done: make(chan struct{}),
+		ctx: ctx,
+		sem: make(chan struct{}),
 	}
 }
 
@@ -29,10 +28,11 @@ func NewWaitGroupContext(ctx context.Context) *WaitGroupContext {
 // If the counter becomes zero, all goroutines blocked on Wait are released.
 // If the counter goes negative, Add panics.
 func (wgc *WaitGroupContext) Add(delta int) {
-	counter := wgc.counter.Add(int32(delta))
-	if counter == 0 && wgc.state.CompareAndSwap(0, 1) {
-		wgc.release()
-	} else if counter < 0 && wgc.state.Load() == 0 {
+	state := wgc.state.Add(uint64(delta) << 32)
+	counter := int32(state >> 32)
+	if counter == 0 {
+		wgc.notifyAll()
+	} else if counter < 0 {
 		panic("async: negative WaitGroupContext counter")
 	}
 }
@@ -44,12 +44,36 @@ func (wgc *WaitGroupContext) Done() {
 
 // Wait blocks until the wait group counter is zero or ctx is done.
 func (wgc *WaitGroupContext) Wait() {
-	select {
-	case <-wgc.ctx.Done():
-	case <-wgc.done:
+	for {
+		state := wgc.state.Load()
+		counter := int32(state >> 32)
+		if counter == 0 {
+			return
+		}
+		if wgc.state.CompareAndSwap(state, state+1) {
+			select {
+			case <-wgc.sem:
+				if wgc.state.Load() != 0 {
+					panic("async: WaitGroupContext is reused before " +
+						"previous Wait has returned")
+				}
+			case <-wgc.ctx.Done():
+			}
+			return
+		}
 	}
 }
 
-func (wgc *WaitGroupContext) release() {
-	close(wgc.done)
+// notifyAll releases all goroutines blocked in Wait and resets
+// the wait group state.
+func (wgc *WaitGroupContext) notifyAll() {
+	state := wgc.state.Load()
+	waiting := uint32(state)
+	wgc.state.Store(0)
+	for ; waiting != 0; waiting-- {
+		select {
+		case wgc.sem <- struct{}{}:
+		case <-wgc.ctx.Done():
+		}
+	}
 }
