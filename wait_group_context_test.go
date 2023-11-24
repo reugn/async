@@ -67,10 +67,56 @@ func TestWaitGroupContextCanceled(t *testing.T) {
 	assert.Equal(t, int(result.Load()), 111)
 }
 
-func TestWaitGroupContextPanic(t *testing.T) {
+func TestWaitGroupContextPanicNegativeCounter(t *testing.T) {
 	negativeCounter := func() {
 		wgc := NewWaitGroupContext(context.Background())
 		wgc.Add(-2)
 	}
 	assert.Panic(t, negativeCounter)
+}
+
+func TestWaitGroupContextPanicReused(t *testing.T) {
+	reusedBeforeWaitReturned := func() {
+		var result atomic.Int32
+		wgc := NewWaitGroupContext(context.Background())
+
+		n := 10
+		for i := 0; i < n; i++ {
+			wgc.Add(1)
+			go func() {
+				defer wgc.Add(1)
+				defer wgc.Done()
+				result.Add(1)
+			}()
+			wgc.Wait()
+		}
+	}
+	assert.Panic(t, reusedBeforeWaitReturned)
+}
+
+func TestWaitGroupContextReused(t *testing.T) {
+	var result atomic.Int32
+	wgc := NewWaitGroupContext(context.Background())
+
+	n := 1000
+	for i := 0; i < n; i++ {
+		assert.Equal(t, int(result.Load()), i*3)
+		wgc.Add(2)
+		go func() {
+			defer wgc.Done()
+			result.Add(1)
+		}()
+		go func() {
+			defer wgc.Done()
+			result.Add(1)
+		}()
+		go func() {
+			wgc.Wait()
+			result.Add(1)
+		}()
+		wgc.Wait()
+		time.Sleep(time.Millisecond)
+	}
+
+	assert.Equal(t, int(result.Load()), n*3)
 }
