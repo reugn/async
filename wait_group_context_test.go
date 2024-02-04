@@ -72,7 +72,7 @@ func TestWaitGroupContextPanicNegativeCounter(t *testing.T) {
 		wgc := NewWaitGroupContext(context.Background())
 		wgc.Add(-2)
 	}
-	assert.Panic(t, negativeCounter)
+	assert.PanicMsgContains(t, negativeCounter, "negative")
 }
 
 func TestWaitGroupContextPanicReused(t *testing.T) {
@@ -91,7 +91,7 @@ func TestWaitGroupContextPanicReused(t *testing.T) {
 			wgc.Wait()
 		}
 	}
-	assert.Panic(t, reusedBeforeWaitReturned)
+	assert.PanicMsgContains(t, reusedBeforeWaitReturned, "reused")
 }
 
 func TestWaitGroupContextReused(t *testing.T) {

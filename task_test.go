@@ -17,7 +17,7 @@ func TestTaskSuccess(t *testing.T) {
 	res, err := task.Call().Join()
 
 	assert.Equal(t, "ok", *res)
-	assert.Equal(t, nil, err)
+	assert.IsNil(t, err)
 }
 
 func TestTaskFailure(t *testing.T) {
@@ -27,6 +27,6 @@ func TestTaskFailure(t *testing.T) {
 	})
 	res, err := task.Call().Join()
 
-	assert.Equal(t, nil, res)
+	assert.IsNil(t, res)
 	assert.ErrorContains(t, err, "error")
 }

@@ -21,7 +21,7 @@ func TestFuture(t *testing.T) {
 	res, err := p.Future().Join()
 
 	assert.Equal(t, true, *res)
-	assert.Equal(t, nil, err)
+	assert.IsNil(t, err)
 }
 
 func TestFutureUtils(t *testing.T) {
@@ -57,10 +57,8 @@ func TestFutureFirstCompleted(t *testing.T) {
 	timeout := FutureTimer[bool](10 * time.Millisecond)
 	futRes, futErr := FutureFirstCompletedOf(p.Future(), timeout).Join()
 
-	assert.Equal(t, nil, futRes)
-	if futErr == nil {
-		t.Fatalf("futErr is nil")
-	}
+	assert.IsNil(t, futRes)
+	assert.NotEqual(t, futErr, nil)
 }
 
 func TestFutureTransform(t *testing.T) {
@@ -113,7 +111,7 @@ func TestFutureRecover(t *testing.T) {
 
 	res, err := future.Join()
 	assert.Equal(t, 2, *res)
-	assert.Equal(t, nil, err)
+	assert.IsNil(t, err)
 }
 
 func TestFutureFailure(t *testing.T) {
