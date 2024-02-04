@@ -9,7 +9,7 @@ import (
 func TestGoroutineID(t *testing.T) {
 	gid, err := GoroutineID()
 
-	assert.Equal(t, nil, err)
+	assert.IsNil(t, err)
 	t.Log(gid)
 }
 

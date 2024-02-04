@@ -12,15 +12,15 @@ func TestValueCompareAndSwap(t *testing.T) {
 	var value Value
 	swapped := value.CompareAndSwap(1, 2)
 	assert.Equal(t, swapped, false)
-	assert.Equal(t, value.Load(), nil)
+	assert.IsNil(t, value.Load())
 
 	swapped = value.CompareAndSwap(1, nil)
 	assert.Equal(t, swapped, false)
-	assert.Equal(t, value.Load(), nil)
+	assert.IsNil(t, value.Load())
 
 	swapped = value.CompareAndSwap(nil, 1)
 	assert.Equal(t, swapped, false)
-	assert.Equal(t, value.Load(), nil)
+	assert.IsNil(t, value.Load())
 
 	value.Store(1)
 
@@ -51,15 +51,11 @@ func TestValueCompareAndSwap(t *testing.T) {
 	stringPointer := util.Ptr("b")
 	swapped = value.CompareAndSwap("a", stringPointer)
 	assert.Equal(t, swapped, true)
-	if value.Load() != stringPointer {
-		t.Fail()
-	}
+	assert.Same(t, value.Load().(*string), stringPointer)
 
 	swapped = value.CompareAndSwap(util.Ptr("b"), "c")
 	assert.Equal(t, swapped, false)
-	if value.Load() != stringPointer {
-		t.Fail()
-	}
+	assert.Same(t, value.Load().(*string), stringPointer)
 
 	swapped = value.CompareAndSwap(stringPointer, "c")
 	assert.Equal(t, swapped, true)
@@ -68,7 +64,7 @@ func TestValueCompareAndSwap(t *testing.T) {
 
 func TestValueLoad(t *testing.T) {
 	var value Value
-	assert.Equal(t, value.Load(), nil)
+	assert.IsNil(t, value.Load())
 
 	value.Store(1)
 	assert.Equal(t, value.Load(), 1)
@@ -79,24 +75,22 @@ func TestValueStore(t *testing.T) {
 	value.Store(1)
 	assert.Equal(t, value.Load(), 1)
 
-	assert.Panic(t, func() { value.Store(nil) })
+	assert.Panics(t, func() { value.Store(nil) })
 
 	value.Store("a")
 	assert.Equal(t, value.Load(), "a")
 
 	stringPointer := util.Ptr("b")
 	value.Store(stringPointer)
-	if value.Load() != stringPointer {
-		t.Fail()
-	}
+	assert.Same(t, value.Load().(*string), stringPointer)
 }
 
 func TestValueSwap(t *testing.T) {
 	var value Value
 	old := value.Swap(1)
-	assert.Equal(t, old, nil)
+	assert.IsNil(t, old)
 
-	assert.Panic(t, func() { _ = value.Swap(nil) })
+	assert.Panics(t, func() { _ = value.Swap(nil) })
 
 	old = value.Swap("a")
 	assert.Equal(t, old, 1)
@@ -104,7 +98,5 @@ func TestValueSwap(t *testing.T) {
 	stringPointer := util.Ptr("b")
 	old = value.Swap(stringPointer)
 	assert.Equal(t, old, "a")
-	if value.Load() != stringPointer {
-		t.Fail()
-	}
+	assert.Same(t, value.Load().(*string), stringPointer)
 }

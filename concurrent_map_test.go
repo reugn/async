@@ -44,7 +44,7 @@ func TestContainsKey(t *testing.T) {
 func TestGet(t *testing.T) {
 	m := prepareConcurrentMap()
 	assert.Equal(t, m.Get(1), util.Ptr("a"))
-	assert.Equal(t, m.Get(4), nil)
+	assert.IsNil(t, m.Get(4))
 }
 
 func TestGetOrDefault(t *testing.T) {
@@ -82,7 +82,7 @@ func TestRemove(t *testing.T) {
 	m := prepareConcurrentMap()
 	assert.Equal(t, m.Remove(3), util.Ptr("c"))
 	assert.Equal(t, m.Size(), 2)
-	assert.Equal(t, m.Remove(5), nil)
+	assert.IsNil(t, m.Remove(5))
 	assert.Equal(t, m.Size(), 2)
 }
 
