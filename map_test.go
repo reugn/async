@@ -156,14 +156,14 @@ func TestShardedMap_ConstructorArguments(t *testing.T) {
 	}, "nonpositive shards")
 
 	assert.PanicMsgContains(t, func() {
-		NewShardedMapWithHash[int, string](0, func(i int) uint64 { return 1 })
+		NewShardedMapWithHash[int, string](0, func(_ int) uint64 { return 1 })
 	}, "nonpositive shards")
 
 	assert.PanicMsgContains(t, func() {
 		NewShardedMapWithHash[int, string](2, nil)
 	}, "hashFunc is nil")
 
-	NewShardedMapWithHash[int, string](2, func(i int) uint64 { return 1 })
+	NewShardedMapWithHash[int, string](2, func(_ int) uint64 { return 1 })
 }
 
 func TestConcurrentMap_MemoryLeaks(t *testing.T) {
