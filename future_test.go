@@ -95,13 +95,13 @@ func TestFutureRecover(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		p2.Failure(errors.New("recover Future failure"))
 	}()
-	future := p1.Future().Map(func(v *int) (*int, error) {
+	future := p1.Future().Map(func(_ *int) (*int, error) {
 		return nil, errors.New("map error")
-	}).FlatMap(func(v *int) (Future[int], error) {
+	}).FlatMap(func(_ *int) (Future[int], error) {
 		p2 := NewPromise[int]()
 		p2.Failure(errors.New("flatMap Future failure"))
 		return p2.Future(), nil
-	}).FlatMap(func(v *int) (Future[int], error) {
+	}).FlatMap(func(_ *int) (Future[int], error) {
 		return nil, errors.New("flatMap error")
 	}).Recover(func() (*int, error) {
 		return nil, errors.New("recover error")
