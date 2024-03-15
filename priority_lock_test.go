@@ -1,6 +1,7 @@
 package async
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -9,60 +10,57 @@ import (
 )
 
 func TestPriorityLock(t *testing.T) {
-	p := NewPriorityLock()
+	p := NewPriorityLock(5)
 	var b strings.Builder
 
-	p.LockH() // acquire first to make the result predictable
+	p.Lock() // acquire first to make the result predictable
 	go func() {
 		time.Sleep(time.Millisecond)
 		p.Unlock()
 	}()
 	for i := 0; i < 10; i++ {
-		go func() {
-			p.LockH()
-			time.Sleep(time.Microsecond)
-			b.WriteRune('h')
-			p.Unlock()
-		}()
-		go func() {
-			p.LockM()
-			time.Sleep(time.Microsecond)
-			b.WriteRune('m')
-			p.Unlock()
-		}()
-		go func() {
-			p.LockL()
-			time.Sleep(time.Microsecond)
-			b.WriteRune('l')
-			p.Unlock()
-		}()
+		for j := 5; j > 0; j-- {
+			go func(n int) {
+				p.LockP(n)
+				time.Sleep(time.Microsecond)
+				b.WriteString(strconv.Itoa(n))
+				p.Unlock()
+			}(j)
+		}
 	}
-	time.Sleep(5 * time.Millisecond)
-	p.LockL()
-	expected := strings.Repeat("h", 10) + strings.Repeat("m", 10) + strings.Repeat("l", 10)
+	time.Sleep(20 * time.Millisecond)
+
+	p.Lock()
+	result := b.String()
 	p.Unlock()
-	assert.Equal(t, b.String(), expected)
+	var expected strings.Builder
+	for i := 5; i > 0; i-- {
+		expected.WriteString(strings.Repeat(strconv.Itoa(i), 10))
+	}
+	assert.Equal(t, result, expected.String())
 }
 
-func TestPriorityLock_IdleLock(t *testing.T) {
-	p := NewPriorityLock()
+func TestPriorityLock_LockRange(t *testing.T) {
+	p := NewPriorityLock(2)
 	var b strings.Builder
-	p.LockH()
-	b.WriteRune('h')
+	p.LockP(-1)
+	b.WriteRune('1')
 	p.Unlock()
-	p.LockM()
-	b.WriteRune('m')
+	p.LockP(2048)
+	b.WriteRune('1')
 	p.Unlock()
-	p.LockL()
-	b.WriteRune('l')
-	p.Unlock()
-	assert.Equal(t, b.String(), "hml")
+	assert.Equal(t, b.String(), "11")
 }
 
 func TestPriorityLock_Panic(t *testing.T) {
-	p := NewPriorityLock()
+	p := NewPriorityLock(2)
 	p.Lock()
 	time.Sleep(time.Nanosecond) // to silence empty critical section warning
 	p.Unlock()
 	assert.PanicMsgContains(t, func() { p.Unlock() }, "unlock of unlocked PriorityLock")
+}
+
+func TestPriorityLock_Validation(t *testing.T) {
+	assert.PanicMsgContains(t, func() { NewPriorityLock(-1) }, "nonpositive maximum priority")
+	assert.PanicMsgContains(t, func() { NewPriorityLock(2048) }, "exceeds hard limit")
 }
