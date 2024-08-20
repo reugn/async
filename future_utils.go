@@ -6,20 +6,20 @@ import (
 )
 
 // FutureSeq reduces many Futures into a single Future.
-// The resulting array may contain both *T values and errors.
+// The resulting array may contain both T values and errors.
 func FutureSeq[T any](futures []Future[T]) Future[[]any] {
-	next := NewFuture[[]any]()
+	next := newFuture[[]any]()
 	go func() {
 		seq := make([]any, len(futures))
 		for i, future := range futures {
-			res, err := future.Join()
+			result, err := future.Join()
 			if err != nil {
 				seq[i] = err
 			} else {
-				seq[i] = res
+				seq[i] = result
 			}
 		}
-		next.complete(&seq, nil)
+		next.complete(seq, nil)
 	}()
 	return next
 }
@@ -28,7 +28,7 @@ func FutureSeq[T any](futures []Future[T]) Future[[]any] {
 // of the first Future in the list that is completed.
 // This means no matter if it is completed as a success or as a failure.
 func FutureFirstCompletedOf[T any](futures ...Future[T]) Future[T] {
-	next := NewFuture[T]()
+	next := newFuture[T]()
 	go func() {
 		for _, f := range futures {
 			go func(future Future[T]) {
@@ -42,11 +42,13 @@ func FutureFirstCompletedOf[T any](futures ...Future[T]) Future[T] {
 // FutureTimer returns Future that will have been resolved after given duration;
 // useful for FutureFirstCompletedOf for timeout purposes.
 func FutureTimer[T any](d time.Duration) Future[T] {
-	next := NewFuture[T]()
+	next := newFuture[T]()
 	go func() {
 		timer := time.NewTimer(d)
 		<-timer.C
-		next.complete(nil, fmt.Errorf("FutureTimer %s timeout", d))
+		var zero T
+		next.(*futureImpl[T]).
+			complete(zero, fmt.Errorf("FutureTimer %s timeout", d))
 	}()
 	return next
 }
