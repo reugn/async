@@ -7,7 +7,7 @@ import "sync"
 type Promise[T any] interface {
 
 	// Success completes the underlying Future with a value.
-	Success(*T)
+	Success(T)
 
 	// Failure fails the underlying Future with an error.
 	Failure(error)
@@ -16,54 +16,38 @@ type Promise[T any] interface {
 	Future() Future[T]
 }
 
-type promiseStatus uint8
-
-const (
-	ready promiseStatus = iota
-	completed
-)
-
-// PromiseImpl implements the Promise interface.
-type PromiseImpl[T any] struct {
-	sync.Mutex
+// promiseImpl implements the Promise interface.
+type promiseImpl[T any] struct {
+	once   sync.Once
 	future Future[T]
-	status promiseStatus
 }
 
-// Verify PromiseImpl satisfies the Promise interface.
-var _ Promise[any] = (*PromiseImpl[any])(nil)
+// Verify promiseImpl satisfies the Promise interface.
+var _ Promise[any] = (*promiseImpl[any])(nil)
 
-// NewPromise returns a new PromiseImpl.
+// NewPromise returns a new Promise.
 func NewPromise[T any]() Promise[T] {
-	return &PromiseImpl[T]{
-		future: NewFuture[T](),
-		status: ready,
+	return &promiseImpl[T]{
+		future: newFuture[T](),
 	}
 }
 
 // Success completes the underlying Future with a given value.
-func (p *PromiseImpl[T]) Success(value *T) {
-	p.Lock()
-	defer p.Unlock()
-
-	if p.status != completed {
+func (p *promiseImpl[T]) Success(value T) {
+	p.once.Do(func() {
 		p.future.complete(value, nil)
-		p.status = completed
-	}
+	})
 }
 
 // Failure fails the underlying Future with a given error.
-func (p *PromiseImpl[T]) Failure(err error) {
-	p.Lock()
-	defer p.Unlock()
-
-	if p.status != completed {
-		p.future.complete(nil, err)
-		p.status = completed
-	}
+func (p *promiseImpl[T]) Failure(err error) {
+	p.once.Do(func() {
+		var zero T
+		p.future.complete(zero, err)
+	})
 }
 
 // Future returns the underlying Future.
-func (p *PromiseImpl[T]) Future() Future[T] {
+func (p *promiseImpl[T]) Future() Future[T] {
 	return p.future
 }

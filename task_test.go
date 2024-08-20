@@ -9,7 +9,18 @@ import (
 	"github.com/reugn/async/internal/util"
 )
 
-func TestTaskSuccess(t *testing.T) {
+func TestTask_Success(t *testing.T) {
+	task := NewTask(func() (string, error) {
+		time.Sleep(10 * time.Millisecond)
+		return "ok", nil
+	})
+	res, err := task.Call().Join()
+
+	assert.Equal(t, "ok", res)
+	assert.IsNil(t, err)
+}
+
+func TestTask_SuccessPtr(t *testing.T) {
 	task := NewTask(func() (*string, error) {
 		time.Sleep(10 * time.Millisecond)
 		return util.Ptr("ok"), nil
@@ -20,7 +31,7 @@ func TestTaskSuccess(t *testing.T) {
 	assert.IsNil(t, err)
 }
 
-func TestTaskFailure(t *testing.T) {
+func TestTask_Failure(t *testing.T) {
 	task := NewTask(func() (*string, error) {
 		time.Sleep(10 * time.Millisecond)
 		return nil, errors.New("error")

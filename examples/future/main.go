@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/reugn/async"
-	"github.com/reugn/async/internal/util"
 )
 
 func main() {
@@ -21,7 +20,7 @@ func asyncAction() async.Future[string] {
 	promise := async.NewPromise[string]()
 	go func() {
 		time.Sleep(time.Second)
-		promise.Success(util.Ptr("OK"))
+		promise.Success("OK")
 	}()
 
 	return promise.Future()

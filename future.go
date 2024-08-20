@@ -13,54 +13,54 @@ type Future[T any] interface {
 
 	// Map creates a new Future by applying a function to the successful
 	// result of this Future.
-	Map(func(*T) (*T, error)) Future[T]
+	Map(func(T) (T, error)) Future[T]
 
 	// FlatMap creates a new Future by applying a function to the successful
 	// result of this Future.
-	FlatMap(func(*T) (Future[T], error)) Future[T]
+	FlatMap(func(T) (Future[T], error)) Future[T]
 
 	// Join blocks until the Future is completed and returns either a result
 	// or an error.
-	Join() (*T, error)
+	Join() (T, error)
 
 	// Get blocks for at most the given time duration for this Future to
 	// complete and returns either a result or an error.
-	Get(time.Duration) (*T, error)
+	Get(time.Duration) (T, error)
 
 	// Recover handles any error that this Future might contain using a
 	// resolver function.
-	Recover(func() (*T, error)) Future[T]
+	Recover(func() (T, error)) Future[T]
 
 	// RecoverWith handles any error that this Future might contain using
 	// another Future.
 	RecoverWith(Future[T]) Future[T]
 
 	// complete completes the Future with either a value or an error.
-	// Is used by Promise internally.
-	complete(*T, error)
+	// It is used by [Promise] internally.
+	complete(T, error)
 }
 
-// FutureImpl implements the Future interface.
-type FutureImpl[T any] struct {
+// futureImpl implements the Future interface.
+type futureImpl[T any] struct {
 	acceptOnce   sync.Once
 	completeOnce sync.Once
 	done         chan any
-	value        *T
+	value        T
 	err          error
 }
 
-// Verify FutureImpl satisfies the Future interface.
-var _ Future[any] = (*FutureImpl[any])(nil)
+// Verify futureImpl satisfies the Future interface.
+var _ Future[any] = (*futureImpl[any])(nil)
 
-// NewFuture returns a new Future.
-func NewFuture[T any]() Future[T] {
-	return &FutureImpl[T]{
+// newFuture returns a new Future.
+func newFuture[T any]() Future[T] {
+	return &futureImpl[T]{
 		done: make(chan any, 1),
 	}
 }
 
 // accept blocks once, until the Future result is available.
-func (fut *FutureImpl[T]) accept() {
+func (fut *futureImpl[T]) accept() {
 	fut.acceptOnce.Do(func() {
 		result := <-fut.done
 		fut.setResult(result)
@@ -69,7 +69,7 @@ func (fut *FutureImpl[T]) accept() {
 
 // acceptTimeout blocks once, until the Future result is available or until
 // the timeout expires.
-func (fut *FutureImpl[T]) acceptTimeout(timeout time.Duration) {
+func (fut *futureImpl[T]) acceptTimeout(timeout time.Duration) {
 	fut.acceptOnce.Do(func() {
 		timer := time.NewTimer(timeout)
 		defer timer.Stop()
@@ -83,23 +83,24 @@ func (fut *FutureImpl[T]) acceptTimeout(timeout time.Duration) {
 }
 
 // setResult assigns a value to the Future instance.
-func (fut *FutureImpl[T]) setResult(result any) {
+func (fut *futureImpl[T]) setResult(result any) {
 	switch value := result.(type) {
 	case error:
 		fut.err = value
 	default:
-		fut.value = value.(*T)
+		fut.value = value.(T)
 	}
 }
 
 // Map creates a new Future by applying a function to the successful result
 // of this Future and returns the result of the function as a new Future.
-func (fut *FutureImpl[T]) Map(f func(*T) (*T, error)) Future[T] {
-	next := NewFuture[T]()
+func (fut *futureImpl[T]) Map(f func(T) (T, error)) Future[T] {
+	next := newFuture[T]()
 	go func() {
 		fut.accept()
 		if fut.err != nil {
-			next.complete(nil, fut.err)
+			var zero T
+			next.complete(zero, fut.err)
 		} else {
 			next.complete(f(fut.value))
 		}
@@ -109,16 +110,18 @@ func (fut *FutureImpl[T]) Map(f func(*T) (*T, error)) Future[T] {
 
 // FlatMap creates a new Future by applying a function to the successful result
 // of this Future and returns the result of the function as a new Future.
-func (fut *FutureImpl[T]) FlatMap(f func(*T) (Future[T], error)) Future[T] {
-	next := NewFuture[T]()
+func (fut *futureImpl[T]) FlatMap(f func(T) (Future[T], error)) Future[T] {
+	next := newFuture[T]()
 	go func() {
 		fut.accept()
 		if fut.err != nil {
-			next.complete(nil, fut.err)
+			var zero T
+			next.complete(zero, fut.err)
 		} else {
 			tfut, terr := f(fut.value)
 			if terr != nil {
-				next.complete(nil, terr)
+				var zero T
+				next.complete(zero, terr)
 			} else {
 				next.complete(tfut.Join())
 			}
@@ -129,14 +132,14 @@ func (fut *FutureImpl[T]) FlatMap(f func(*T) (Future[T], error)) Future[T] {
 
 // Join blocks until the Future is completed and returns either
 // a result or an error.
-func (fut *FutureImpl[T]) Join() (*T, error) {
+func (fut *futureImpl[T]) Join() (T, error) {
 	fut.accept()
 	return fut.value, fut.err
 }
 
 // Get blocks for at most the given time duration for this Future to
 // complete and returns either a result or an error.
-func (fut *FutureImpl[T]) Get(timeout time.Duration) (*T, error) {
+func (fut *futureImpl[T]) Get(timeout time.Duration) (T, error) {
 	fut.acceptTimeout(timeout)
 	return fut.value, fut.err
 }
@@ -144,8 +147,8 @@ func (fut *FutureImpl[T]) Get(timeout time.Duration) (*T, error) {
 // Recover handles any error that this Future might contain using
 // a given resolver function.
 // Returns the result as a new Future.
-func (fut *FutureImpl[T]) Recover(f func() (*T, error)) Future[T] {
-	next := NewFuture[T]()
+func (fut *futureImpl[T]) Recover(f func() (T, error)) Future[T] {
+	next := newFuture[T]()
 	go func() {
 		fut.accept()
 		if fut.err != nil {
@@ -160,8 +163,8 @@ func (fut *FutureImpl[T]) Recover(f func() (*T, error)) Future[T] {
 // RecoverWith handles any error that this Future might contain using
 // another Future.
 // Returns the result as a new Future.
-func (fut *FutureImpl[T]) RecoverWith(rf Future[T]) Future[T] {
-	next := NewFuture[T]()
+func (fut *futureImpl[T]) RecoverWith(rf Future[T]) Future[T] {
+	next := newFuture[T]()
 	go func() {
 		fut.accept()
 		if fut.err != nil {
@@ -174,14 +177,12 @@ func (fut *FutureImpl[T]) RecoverWith(rf Future[T]) Future[T] {
 }
 
 // complete completes the Future with either a value or an error.
-func (fut *FutureImpl[T]) complete(value *T, err error) {
+func (fut *futureImpl[T]) complete(value T, err error) {
 	fut.completeOnce.Do(func() {
-		go func() {
-			if err != nil {
-				fut.done <- err
-			} else {
-				fut.done <- value
-			}
-		}()
+		if err != nil {
+			fut.done <- err
+		} else {
+			fut.done <- value
+		}
 	})
 }
