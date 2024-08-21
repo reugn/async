@@ -1,6 +1,7 @@
 package async
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"runtime"
@@ -79,7 +80,7 @@ func TestFuture_Transform(t *testing.T) {
 		return util.Ptr(5), nil
 	})
 
-	res, _ := future.Get(time.Second * 5)
+	res, _ := future.Get(context.Background())
 	assert.Equal(t, 3, *res)
 
 	res, _ = future.Join()
@@ -136,11 +137,15 @@ func TestFuture_Timeout(t *testing.T) {
 	}()
 	future := p.Future()
 
-	_, err := future.Get(10 * time.Millisecond)
-	assert.ErrorContains(t, err, "timeout")
+	ctx, cancel := context.WithTimeout(context.Background(),
+		10*time.Millisecond)
+	defer cancel()
+
+	_, err := future.Get(ctx)
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
 
 	_, err = future.Join()
-	assert.ErrorContains(t, err, "timeout")
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestFuture_GoroutineLeak(t *testing.T) {
@@ -161,7 +166,7 @@ func TestFuture_GoroutineLeak(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			fut := promise.Future()
-			_, _ = fut.Get(10 * time.Millisecond)
+			_, _ = fut.Get(context.Background())
 			time.Sleep(100 * time.Millisecond)
 			_, _ = fut.Join()
 		}()

@@ -44,11 +44,10 @@ func FutureFirstCompletedOf[T any](futures ...Future[T]) Future[T] {
 func FutureTimer[T any](d time.Duration) Future[T] {
 	next := newFuture[T]()
 	go func() {
-		timer := time.NewTimer(d)
-		<-timer.C
+		<-time.After(d)
 		var zero T
 		next.(*futureImpl[T]).
-			complete(zero, fmt.Errorf("FutureTimer %s timeout", d))
+			complete(zero, fmt.Errorf("future timeout after %s", d))
 	}()
 	return next
 }

@@ -1,9 +1,8 @@
 package async
 
 import (
-	"fmt"
+	"context"
 	"sync"
-	"time"
 )
 
 // Future represents a value which may or may not currently be available,
@@ -23,9 +22,9 @@ type Future[T any] interface {
 	// or an error.
 	Join() (T, error)
 
-	// Get blocks for at most the given time duration for this Future to
-	// complete and returns either a result or an error.
-	Get(time.Duration) (T, error)
+	// Get blocks until the Future is completed or context is canceled and
+	// returns either a result or an error.
+	Get(context.Context) (T, error)
 
 	// Recover handles any error that this Future might contain using a
 	// resolver function.
@@ -68,16 +67,14 @@ func (fut *futureImpl[T]) accept() {
 }
 
 // acceptTimeout blocks once, until the Future result is available or until
-// the timeout expires.
-func (fut *futureImpl[T]) acceptTimeout(timeout time.Duration) {
+// the context is canceled.
+func (fut *futureImpl[T]) acceptContext(ctx context.Context) {
 	fut.acceptOnce.Do(func() {
-		timer := time.NewTimer(timeout)
-		defer timer.Stop()
 		select {
 		case result := <-fut.done:
 			fut.setResult(result)
-		case <-timer.C:
-			fut.setResult(fmt.Errorf("Future timeout after %s", timeout))
+		case <-ctx.Done():
+			fut.setResult(ctx.Err())
 		}
 	})
 }
@@ -137,10 +134,10 @@ func (fut *futureImpl[T]) Join() (T, error) {
 	return fut.value, fut.err
 }
 
-// Get blocks for at most the given time duration for this Future to
-// complete and returns either a result or an error.
-func (fut *futureImpl[T]) Get(timeout time.Duration) (T, error) {
-	fut.acceptTimeout(timeout)
+// Get blocks until the Future is completed or context is canceled and
+// returns either a result or an error.
+func (fut *futureImpl[T]) Get(ctx context.Context) (T, error) {
+	fut.acceptContext(ctx)
 	return fut.value, fut.err
 }
 

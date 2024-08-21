@@ -1,6 +1,7 @@
 package assert
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -75,6 +76,14 @@ func ErrorContains(t *testing.T, err error, str string) {
 	} else if !strings.Contains(err.Error(), str) {
 		t.Helper()
 		t.Fatalf("Error does not contain string: %s", str)
+	}
+}
+
+// ErrorIs checks whether any error in err's tree matches target.
+func ErrorIs(t *testing.T, err error, target error) {
+	if !errors.Is(err, target) {
+		t.Helper()
+		t.Fatalf("Error type mismatch: %v != %v", err, target)
 	}
 }
 
