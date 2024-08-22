@@ -13,6 +13,7 @@ Async is a synchronization and asynchronous computation package for Go.
 * **ShardedMap** - Implements the generic `async.Map` interface in a thread-safe manner, delegating load/store operations to one of the underlying `async.SynchronizedMap`s (shards), using a key hash to calculate the shard number.
 * **Future** - A placeholder object for a value that may not yet exist.
 * **Promise** - While futures are defined as a type of read-only placeholder object created for a result which doesn’t yet exist, a promise can be thought of as a writable, single-assignment container, which completes a future.
+* **Executor** - A worker pool for executing asynchronous tasks, where each submission returns a Future instance representing the result of the task.
 * **Task** - A data type for controlling possibly lazy and asynchronous computations.
 * **Once** - An object similar to sync.Once having the Do method taking `f func() (T, error)` and returning `(T, error)`.
 * **Value** - An object similar to atomic.Value, but without the consistent type constraint.
