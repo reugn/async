@@ -19,6 +19,7 @@ func TestFuture(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		p.Success(true)
 	}()
+
 	res, err := p.Future().Join()
 
 	assert.Equal(t, true, res)
@@ -42,6 +43,7 @@ func TestFuture_Utils(t *testing.T) {
 		time.Sleep(300 * time.Millisecond)
 		p3.Failure(err3)
 	}()
+
 	arr := []Future[*int]{p1.Future(), p2.Future(), p3.Future()}
 	res := []any{res1, res2, err3}
 	futRes, _ := FutureSeq(arr).Join()
@@ -55,6 +57,7 @@ func TestFuture_FirstCompleted(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		p.Success(util.Ptr(true))
 	}()
+
 	timeout := FutureTimer[*bool](10 * time.Millisecond)
 	futRes, futErr := FutureFirstCompletedOf(p.Future(), timeout).Join()
 
@@ -68,6 +71,7 @@ func TestFuture_Transform(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		p1.Success(util.Ptr(1))
 	}()
+
 	future := p1.Future().Map(func(v *int) (*int, error) {
 		inc := *v + 1
 		return &inc, nil
@@ -96,6 +100,7 @@ func TestFuture_Recover(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		p2.Failure(errors.New("recover Future failure"))
 	}()
+
 	future := p1.Future().Map(func(_ int) (int, error) {
 		return 0, errors.New("map error")
 	}).FlatMap(func(_ int) (Future[int], error) {
@@ -116,17 +121,30 @@ func TestFuture_Recover(t *testing.T) {
 }
 
 func TestFuture_Failure(t *testing.T) {
-	p1 := NewPromise[*int]()
-	p2 := NewPromise[*int]()
+	p1 := NewPromise[int]()
+	p2 := NewPromise[int]()
+	p3 := NewPromise[int]()
+	err := errors.New("error")
 	go func() {
-		time.Sleep(10 * time.Millisecond)
-		p1.Failure(errors.New("Future error"))
-		time.Sleep(20 * time.Millisecond)
-		p2.Success(util.Ptr(2))
+		time.Sleep(5 * time.Millisecond)
+		p1.Failure(err)
+		time.Sleep(5 * time.Millisecond)
+		p2.Failure(err)
+		time.Sleep(5 * time.Millisecond)
+		p3.Success(2)
 	}()
-	res, _ := p1.Future().RecoverWith(p2.Future()).Join()
 
-	assert.Equal(t, 2, *res)
+	res, _ := p1.Future().
+		Map(func(_ int) (int, error) { return 0, err }).
+		FlatMap(func(_ int) (Future[int], error) { return p1.Future(), err }).
+		RecoverWith(p2.Future()).
+		RecoverWith(p3.Future()).
+		FlatMap(func(_ int) (Future[int], error) { return p2.Future(), err }).
+		RecoverWith(p3.Future()).
+		RecoverWith(p3.Future()).
+		Join()
+
+	assert.Equal(t, 2, res)
 }
 
 func TestFuture_Timeout(t *testing.T) {
@@ -135,6 +153,7 @@ func TestFuture_Timeout(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		p.Success(true)
 	}()
+
 	future := p.Future()
 
 	ctx, cancel := context.WithTimeout(context.Background(),
@@ -150,7 +169,6 @@ func TestFuture_Timeout(t *testing.T) {
 
 func TestFuture_GoroutineLeak(t *testing.T) {
 	var wg sync.WaitGroup
-
 	fmt.Println(runtime.NumGoroutine())
 
 	numFuture := 100
@@ -176,6 +194,7 @@ func TestFuture_GoroutineLeak(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	numGoroutine := runtime.NumGoroutine()
 	fmt.Println(numGoroutine)
+
 	if numGoroutine > numFuture {
 		t.Fatalf("numGoroutine is %d", numGoroutine)
 	}

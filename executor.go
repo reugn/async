@@ -54,13 +54,13 @@ func NewExecutorConfig(workerPoolSize, queueSize int) *ExecutorConfig {
 // Executor implements the [ExecutorService] interface.
 type Executor[T any] struct {
 	cancel context.CancelFunc
-	queue  chan job[T]
+	queue  chan executorJob[T]
 	status atomic.Uint32
 }
 
 var _ ExecutorService[any] = (*Executor[any])(nil)
 
-type job[T any] struct {
+type executorJob[T any] struct {
 	promise Promise[T]
 	task    func(context.Context) (T, error)
 }
@@ -70,23 +70,24 @@ func NewExecutor[T any](ctx context.Context, config *ExecutorConfig) *Executor[T
 	ctx, cancel := context.WithCancel(ctx)
 	executor := &Executor[T]{
 		cancel: cancel,
-		queue:  make(chan job[T], config.QueueSize),
+		queue:  make(chan executorJob[T], config.QueueSize),
 	}
+	// set the executor status to running explicitly
+	executor.status.Store(uint32(ExecutorStatusRunning))
+
 	// init the workers pool
 	go executor.startWorkers(ctx, config.WorkerPoolSize)
 
 	// set status to terminating when ctx is done
 	go executor.monitorCtx(ctx)
 
-	// set the executor status to running
-	executor.status.Store(uint32(ExecutorStatusRunning))
-
 	return executor
 }
 
 func (e *Executor[T]) monitorCtx(ctx context.Context) {
 	<-ctx.Done()
-	e.status.Store(uint32(ExecutorStatusTerminating))
+	_ = e.status.CompareAndSwap(uint32(ExecutorStatusRunning),
+		uint32(ExecutorStatusTerminating))
 }
 
 func (e *Executor[T]) startWorkers(ctx context.Context, poolSize int) {
@@ -130,7 +131,7 @@ func (e *Executor[T]) Submit(f func(context.Context) (T, error)) (Future[T], err
 	promise := NewPromise[T]()
 	if ExecutorStatus(e.status.Load()) == ExecutorStatusRunning {
 		select {
-		case e.queue <- job[T]{promise, f}:
+		case e.queue <- executorJob[T]{promise, f}:
 		default:
 			return nil, ErrExecutorQueueFull
 		}
