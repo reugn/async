@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"testing"
 	"time"
@@ -44,7 +45,7 @@ func TestExecutor(t *testing.T) {
 	routines := runtime.NumGoroutine()
 
 	// shut down the executor
-	executor.Shutdown()
+	_ = executor.Shutdown()
 	time.Sleep(time.Millisecond)
 
 	// verify that submit fails after the executor was shut down
@@ -60,6 +61,26 @@ func TestExecutor(t *testing.T) {
 
 	assertFutureResult(t, 1, future1, future2, future3, future4)
 	assertFutureError(t, ErrExecutorShutdown, future5, future6)
+}
+
+func TestExecutor_context(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	executor := NewExecutor[int](ctx, NewExecutorConfig(2, 2))
+
+	job := func(_ context.Context) (int, error) {
+		return 0, errors.New("error")
+	}
+
+	future, err := executor.Submit(job)
+	assert.IsNil(t, err)
+
+	result, err := future.Join()
+	assert.Equal(t, result, 0)
+	assert.ErrorContains(t, err, "error")
+
+	cancel()
+	time.Sleep(5 * time.Millisecond)
+	assert.Equal(t, executor.Status(), ExecutorStatusShutdown)
 }
 
 func submitJob[T any](t *testing.T, executor ExecutorService[T],
