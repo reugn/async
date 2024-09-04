@@ -50,17 +50,17 @@ func TestExecutor(t *testing.T) {
 
 	// verify that submit fails after the executor was shut down
 	_, err = executor.Submit(job)
-	assert.ErrorIs(t, err, ErrExecutorShutdown)
+	assert.ErrorIs(t, err, ErrExecutorShutDown)
 
 	// validate the executor status
 	assert.Equal(t, executor.Status(), ExecutorStatusTerminating)
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, executor.Status(), ExecutorStatusShutdown)
+	assert.Equal(t, executor.Status(), ExecutorStatusShutDown)
 
 	assert.Equal(t, routines, runtime.NumGoroutine()+4)
 
 	assertFutureResult(t, 1, future1, future2, future3, future4)
-	assertFutureError(t, ErrExecutorShutdown, future5, future6)
+	assertFutureError(t, ErrExecutorShutDown, future5, future6)
 }
 
 func TestExecutor_context(t *testing.T) {
@@ -80,7 +80,30 @@ func TestExecutor_context(t *testing.T) {
 
 	cancel()
 	time.Sleep(5 * time.Millisecond)
-	assert.Equal(t, executor.Status(), ExecutorStatusShutdown)
+
+	_, err = executor.Submit(job)
+	assert.ErrorIs(t, err, ErrExecutorShutDown)
+
+	assert.Equal(t, executor.Status(), ExecutorStatusShutDown)
+}
+
+func TestExecutor_jobPanic(t *testing.T) {
+	ctx := context.Background()
+	executor := NewExecutor[int](ctx, NewExecutorConfig(2, 2))
+
+	job := func(_ context.Context) (int, error) {
+		var i int
+		return 1 / i, nil
+	}
+
+	future, err := executor.Submit(job)
+	assert.IsNil(t, err)
+
+	result, err := future.Join()
+	assert.Equal(t, result, 0)
+	assert.ErrorContains(t, err, "integer divide by zero")
+
+	_ = executor.Shutdown()
 }
 
 func submitJob[T any](t *testing.T, executor ExecutorService[T],
@@ -88,7 +111,7 @@ func submitJob[T any](t *testing.T, executor ExecutorService[T],
 	future, err := executor.Submit(f)
 	assert.IsNil(t, err)
 
-	time.Sleep(time.Millisecond) // switch context
+	runtime.Gosched()
 	return future
 }
 
