@@ -3,6 +3,7 @@ package async
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -13,12 +14,12 @@ type ExecutorStatus uint32
 const (
 	ExecutorStatusRunning ExecutorStatus = iota
 	ExecutorStatusTerminating
-	ExecutorStatusShutdown
+	ExecutorStatusShutDown
 )
 
 var (
 	ErrExecutorQueueFull = errors.New("async: executor queue is full")
-	ErrExecutorShutdown  = errors.New("async: executor is shut down")
+	ErrExecutorShutDown  = errors.New("async: executor is shut down")
 )
 
 // ExecutorService is an interface that defines a task executor.
@@ -44,6 +45,7 @@ type ExecutorConfig struct {
 }
 
 // NewExecutorConfig returns a new [ExecutorConfig].
+// workerPoolSize must be positive and queueSize non-negative.
 func NewExecutorConfig(workerPoolSize, queueSize int) *ExecutorConfig {
 	return &ExecutorConfig{
 		WorkerPoolSize: workerPoolSize,
@@ -53,6 +55,7 @@ func NewExecutorConfig(workerPoolSize, queueSize int) *ExecutorConfig {
 
 // Executor implements the [ExecutorService] interface.
 type Executor[T any] struct {
+	mtx    sync.RWMutex
 	cancel context.CancelFunc
 	queue  chan executorJob[T]
 	status atomic.Uint32
@@ -63,6 +66,16 @@ var _ ExecutorService[any] = (*Executor[any])(nil)
 type executorJob[T any] struct {
 	promise Promise[T]
 	task    func(context.Context) (T, error)
+}
+
+// run executes the task, handling possible panics.
+func (job *executorJob[T]) run(ctx context.Context) (result T, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered: %v", r)
+		}
+	}()
+	return job.task(ctx)
 }
 
 // NewExecutor returns a new [Executor].
@@ -97,10 +110,11 @@ func (e *Executor[T]) startWorkers(ctx context.Context, poolSize int) {
 		go func() {
 			defer wg.Done()
 		loop:
+			// check the status to break the loop even if the queue is not empty
 			for ExecutorStatus(e.status.Load()) == ExecutorStatusRunning {
 				select {
 				case job := <-e.queue:
-					result, err := job.task(ctx)
+					result, err := job.run(ctx)
 					if err != nil {
 						job.promise.Failure(err)
 					} else {
@@ -115,30 +129,39 @@ func (e *Executor[T]) startWorkers(ctx context.Context, poolSize int) {
 
 	// wait for all workers to exit
 	wg.Wait()
+	// mark the executor as terminating
+	e.status.Store(uint32(ExecutorStatusTerminating))
+
+	// avoid submissions while draining the queue
+	e.mtx.Lock()
+	defer e.mtx.Unlock()
+
 	// close the queue and cancel all pending tasks
 	close(e.queue)
 	for job := range e.queue {
-		job.promise.Failure(ErrExecutorShutdown)
+		job.promise.Failure(ErrExecutorShutDown)
 	}
 	// mark the executor as shut down
-	e.status.Store(uint32(ExecutorStatusShutdown))
+	e.status.Store(uint32(ExecutorStatusShutDown))
 }
 
 // Submit submits a function to the executor.
 // The function will be executed asynchronously and the result will be
 // available via the returned future.
 func (e *Executor[T]) Submit(f func(context.Context) (T, error)) (Future[T], error) {
-	promise := NewPromise[T]()
+	e.mtx.RLock()
+	defer e.mtx.RUnlock()
+
 	if ExecutorStatus(e.status.Load()) == ExecutorStatusRunning {
+		promise := NewPromise[T]()
 		select {
 		case e.queue <- executorJob[T]{promise, f}:
+			return promise.Future(), nil
 		default:
 			return nil, ErrExecutorQueueFull
 		}
-	} else {
-		return nil, ErrExecutorShutdown
 	}
-	return promise.Future(), nil
+	return nil, ErrExecutorShutDown
 }
 
 // Shutdown shuts down the executor.
