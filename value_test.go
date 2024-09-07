@@ -7,7 +7,6 @@ import (
 	"github.com/reugn/async/internal/util"
 )
 
-//nolint:funlen
 func TestValueCompareAndSwap(t *testing.T) {
 	var value Value
 	swapped := value.CompareAndSwap(1, 2)
