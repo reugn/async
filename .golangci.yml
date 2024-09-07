@@ -1,33 +1,53 @@
 run:
-  skip-dirs:
-    - benchmarks
+  timeout: 2m
 
 linters:
   disable-all: true
   enable:
     - dupl
     - errcheck
-    - exportloopref
+    - errname
+    - errorlint
     - funlen
+    - gci
     - goconst
     - gocritic
     - gocyclo
     - gofmt
     - goimports
+    - gosec
     - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
+    - nolintlint
     - prealloc
     - revive
     - staticcheck
+    - stylecheck
+    - thelper
+    - tparallel
     - typecheck
     - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+linters-settings:
+  gosec:
+    excludes:
+      - G115
+  thelper:
+    test:
+      begin: false
 
 issues:
   exclude-rules:
-    # Exclude some linters from running on tests files.
     - path: _test\.go
       linters:
         - errcheck
+        - funlen
+
+  exclude-dirs:
+    - benchmarks
