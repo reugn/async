@@ -136,6 +136,7 @@ func (cm *ConcurrentMap[K, V]) Values() []*V {
 	return values
 }
 
+//nolint:staticcheck
 func (cm *ConcurrentMap[K, V]) smap() *sync.Map {
 	for {
 		if !cm.clearing.Load() {

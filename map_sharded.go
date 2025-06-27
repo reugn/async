@@ -24,7 +24,7 @@ var _ Map[int, any] = (*ShardedMap[int, any])(nil)
 func NewShardedMap[K comparable, V any](shards int) *ShardedMap[K, V] {
 	return NewShardedMapWithHash[K, V](shards, func(key K) uint64 {
 		h := fnv.New64a()
-		h.Write([]byte(fmt.Sprint(key)))
+		_, _ = fmt.Fprint(h, key)
 		return h.Sum64()
 	})
 }

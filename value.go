@@ -14,7 +14,9 @@ type Value struct {
 
 // CompareAndSwap executes the compare-and-swap operation for the Value.
 // The current implementation is not atomic.
-func (v *Value) CompareAndSwap(old any, new any) (swapped bool) {
+//
+//nolint:revive
+func (v *Value) CompareAndSwap(old, new any) (swapped bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			swapped = false
@@ -49,6 +51,8 @@ func (v *Value) Store(val any) {
 // Swap stores new into Value and returns the previous value.
 // It returns nil if the Value is empty.
 // Swap(nil) panics.
+//
+//nolint:revive
 func (v *Value) Swap(new any) (old any) {
 	oldValue := v.p.Swap(initValue(new))
 	if oldValue != nil {
