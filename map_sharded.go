@@ -3,6 +3,7 @@ package async
 import (
 	"fmt"
 	"hash/fnv"
+	"iter"
 	"sync"
 )
 
@@ -130,6 +131,20 @@ func (sm *ShardedMap[K, V]) Values() []*V {
 	return values
 }
 
+// All returns an iterator of all key-value pairs in this map.
+// The order of the pairs is not specified.
+func (sm *ShardedMap[K, V]) All() iter.Seq2[K, *V] {
+	return func(yield func(K, *V) bool) {
+		for _, shard := range sm.shardMap {
+			for key, value := range shard.All() {
+				if !yield(key, value) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // shard returns an underlying synchronized map for the key.
 func (sm *ShardedMap[K, V]) shard(key K) Map[K, V] {
 	return sm.shardMap[sm.hashFunc(key)%sm.shards]
@@ -255,4 +270,18 @@ func (sync *SynchronizedMap[K, V]) Values() []*V {
 		values = append(values, value)
 	}
 	return values
+}
+
+// All returns an iterator of all key-value pairs in this map.
+// The order of the pairs is not specified.
+func (sync *SynchronizedMap[K, V]) All() iter.Seq2[K, *V] {
+	return func(yield func(K, *V) bool) {
+		sync.RLock()
+		defer sync.RUnlock()
+		for key, value := range sync.store {
+			if !yield(key, value) {
+				return
+			}
+		}
+	}
 }

@@ -1,5 +1,7 @@
 package async
 
+import "iter"
+
 // A Map is an object that maps keys to values.
 type Map[K comparable, V any] interface {
 
@@ -41,4 +43,8 @@ type Map[K comparable, V any] interface {
 
 	// Values returns a slice of the values contained in this map.
 	Values() []*V
+
+	// All returns an iterator of all key-value pairs in this map.
+	// The order of the pairs is not specified.
+	All() iter.Seq2[K, *V]
 }
