@@ -1,6 +1,7 @@
 package async
 
 import (
+	"iter"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -89,11 +90,10 @@ func (cm *ConcurrentMap[K, V]) IsEmpty() bool {
 // KeySet returns a slice of the keys contained in this map.
 func (cm *ConcurrentMap[K, V]) KeySet() []K {
 	keys := make([]K, 0, cm.Size())
-	rangeKeysFunc := func(key any, _ any) bool {
+	cm.smap().Range(func(key any, _ any) bool {
 		keys = append(keys, key.(K))
 		return true
-	}
-	cm.smap().Range(rangeKeysFunc)
+	})
 	return keys
 }
 
@@ -128,12 +128,21 @@ func (cm *ConcurrentMap[K, V]) Size() int {
 // Values returns a slice of the values contained in this map.
 func (cm *ConcurrentMap[K, V]) Values() []*V {
 	values := make([]*V, 0, cm.Size())
-	rangeValuesFunc := func(_ any, value any) bool {
+	cm.smap().Range(func(_ any, value any) bool {
 		values = append(values, value.(*V))
 		return true
-	}
-	cm.smap().Range(rangeValuesFunc)
+	})
 	return values
+}
+
+// All returns an iterator of all key-value pairs in this map.
+// The order of the pairs is not specified.
+func (cm *ConcurrentMap[K, V]) All() iter.Seq2[K, *V] {
+	return func(yield func(K, *V) bool) {
+		cm.smap().Range(func(key, value any) bool {
+			return yield(key.(K), value.(*V))
+		})
+	}
 }
 
 //nolint:staticcheck

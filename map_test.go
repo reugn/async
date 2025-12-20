@@ -1,6 +1,7 @@
 package async
 
 import (
+	"maps"
 	"runtime"
 	"strconv"
 	"sync"
@@ -12,9 +13,12 @@ import (
 )
 
 func TestMap_Clear(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			tt.m.Clear()
 			assert.Equal(t, tt.m.Size(), 0)
 			tt.m.Put(1, util.Ptr("a"))
@@ -24,9 +28,12 @@ func TestMap_Clear(t *testing.T) {
 }
 
 func TestMap_ComputeIfAbsent(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(
 				t,
 				tt.m.ComputeIfAbsent(4, func(_ int) *string { return util.Ptr("d") }),
@@ -44,9 +51,12 @@ func TestMap_ComputeIfAbsent(t *testing.T) {
 }
 
 func TestMap_ContainsKey(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.ContainsKey(3), true)
 			assert.Equal(t, tt.m.ContainsKey(4), false)
 		})
@@ -54,9 +64,12 @@ func TestMap_ContainsKey(t *testing.T) {
 }
 
 func TestMap_Get(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.Get(1), util.Ptr("a"))
 			assert.IsNil(t, tt.m.Get(4))
 		})
@@ -64,9 +77,12 @@ func TestMap_Get(t *testing.T) {
 }
 
 func TestMap_GetOrDefault(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.GetOrDefault(1, util.Ptr("e")), util.Ptr("a"))
 			assert.Equal(t, tt.m.GetOrDefault(5, util.Ptr("e")), util.Ptr("e"))
 		})
@@ -74,9 +90,12 @@ func TestMap_GetOrDefault(t *testing.T) {
 }
 
 func TestMap_IsEmpty(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.IsEmpty(), false)
 			tt.m.Clear()
 			assert.Equal(t, tt.m.IsEmpty(), true)
@@ -85,9 +104,12 @@ func TestMap_IsEmpty(t *testing.T) {
 }
 
 func TestMap_KeySet(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.ElementsMatch(t, tt.m.KeySet(), []int{1, 2, 3})
 			tt.m.Put(4, util.Ptr("d"))
 			assert.ElementsMatch(t, tt.m.KeySet(), []int{1, 2, 3, 4})
@@ -96,9 +118,12 @@ func TestMap_KeySet(t *testing.T) {
 }
 
 func TestMap_Put(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.Size(), 3)
 			tt.m.Put(4, util.Ptr("d"))
 			assert.Equal(t, tt.m.Size(), 4)
@@ -111,9 +136,12 @@ func TestMap_Put(t *testing.T) {
 }
 
 func TestMap_Remove(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.Remove(3), util.Ptr("c"))
 			assert.Equal(t, tt.m.Size(), 2)
 			assert.IsNil(t, tt.m.Remove(5))
@@ -123,18 +151,24 @@ func TestMap_Remove(t *testing.T) {
 }
 
 func TestMap_Size(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.Equal(t, tt.m.Size(), 3)
 		})
 	}
 }
 
 func TestMap_Values(t *testing.T) {
+	t.Parallel()
+
 	tests := prepareTestMaps()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			assert.ElementsMatch(
 				t,
 				tt.m.Values(),
@@ -150,7 +184,38 @@ func TestMap_Values(t *testing.T) {
 	}
 }
 
+func TestMap_All(t *testing.T) {
+	t.Parallel()
+
+	tests := prepareTestMaps()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			// collect all key-value pairs from the iterator
+			collected := maps.Collect(tt.m.All())
+
+			// verify we got all 3 expected pairs
+			expected := map[int]*string{
+				1: util.Ptr("a"),
+				2: util.Ptr("b"),
+				3: util.Ptr("c"),
+			}
+			assert.Equal(t, collected, expected)
+
+			// add a new entry and verify it appears in the iterator
+			tt.m.Put(4, util.Ptr("d"))
+			collected = maps.Collect(tt.m.All())
+
+			// verify we now have 4 pairs
+			expected[4] = util.Ptr("d")
+			assert.Equal(t, collected, expected)
+		})
+	}
+}
+
 func TestShardedMap_ConstructorArguments(t *testing.T) {
+	t.Parallel()
+
 	assert.PanicMsgContains(t, func() {
 		NewShardedMap[int, string](0)
 	}, "nonpositive shards")
@@ -167,6 +232,8 @@ func TestShardedMap_ConstructorArguments(t *testing.T) {
 }
 
 func TestConcurrentMap_MemoryLeaks(t *testing.T) {
+	t.Parallel()
+
 	var statsBefore runtime.MemStats
 	runtime.ReadMemStats(&statsBefore)
 
