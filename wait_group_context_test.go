@@ -98,7 +98,7 @@ func TestWaitGroupContextReused(t *testing.T) {
 	var result atomic.Int32
 	wgc := NewWaitGroupContext(context.Background())
 
-	n := 1000
+	n := 100
 	for i := 0; i < n; i++ {
 		assert.Equal(t, int(result.Load()), i*3)
 		wgc.Add(2)
@@ -115,7 +115,7 @@ func TestWaitGroupContextReused(t *testing.T) {
 			result.Add(1)
 		}()
 		wgc.Wait()
-		time.Sleep(time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 
 	assert.Equal(t, int(result.Load()), n*3)

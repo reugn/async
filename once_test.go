@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/reugn/async/internal/assert"
-	"github.com/reugn/async/internal/util"
+	"github.com/reugn/async/internal/ptr"
 )
 
 func TestOnce(t *testing.T) {
@@ -32,7 +32,7 @@ func TestOnce_Ptr(t *testing.T) {
 			return count, nil
 		})
 	}
-	assert.Equal(t, util.Ptr(1), count)
+	assert.Equal(t, ptr.Of(1), count)
 }
 
 func TestOnce_Concurrent(t *testing.T) {

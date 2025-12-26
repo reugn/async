@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/reugn/async/internal/assert"
-	"github.com/reugn/async/internal/util"
+	"github.com/reugn/async/internal/ptr"
 )
 
 func TestMap_Clear(t *testing.T) {
@@ -21,7 +21,7 @@ func TestMap_Clear(t *testing.T) {
 			t.Parallel()
 			tt.m.Clear()
 			assert.Equal(t, tt.m.Size(), 0)
-			tt.m.Put(1, util.Ptr("a"))
+			tt.m.Put(1, ptr.Of("a"))
 			assert.Equal(t, tt.m.Size(), 1)
 		})
 	}
@@ -36,14 +36,14 @@ func TestMap_ComputeIfAbsent(t *testing.T) {
 			t.Parallel()
 			assert.Equal(
 				t,
-				tt.m.ComputeIfAbsent(4, func(_ int) *string { return util.Ptr("d") }),
-				util.Ptr("d"),
+				tt.m.ComputeIfAbsent(4, func(_ int) *string { return ptr.Of("d") }),
+				ptr.Of("d"),
 			)
 			assert.Equal(t, tt.m.Size(), 4)
 			assert.Equal(
 				t,
-				tt.m.ComputeIfAbsent(4, func(_ int) *string { return util.Ptr("e") }),
-				util.Ptr("d"),
+				tt.m.ComputeIfAbsent(4, func(_ int) *string { return ptr.Of("e") }),
+				ptr.Of("d"),
 			)
 			assert.Equal(t, tt.m.Size(), 4)
 		})
@@ -70,7 +70,7 @@ func TestMap_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.m.Get(1), util.Ptr("a"))
+			assert.Equal(t, tt.m.Get(1), ptr.Of("a"))
 			assert.IsNil(t, tt.m.Get(4))
 		})
 	}
@@ -83,8 +83,8 @@ func TestMap_GetOrDefault(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.m.GetOrDefault(1, util.Ptr("e")), util.Ptr("a"))
-			assert.Equal(t, tt.m.GetOrDefault(5, util.Ptr("e")), util.Ptr("e"))
+			assert.Equal(t, tt.m.GetOrDefault(1, ptr.Of("e")), ptr.Of("a"))
+			assert.Equal(t, tt.m.GetOrDefault(5, ptr.Of("e")), ptr.Of("e"))
 		})
 	}
 }
@@ -111,7 +111,7 @@ func TestMap_KeySet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.ElementsMatch(t, tt.m.KeySet(), []int{1, 2, 3})
-			tt.m.Put(4, util.Ptr("d"))
+			tt.m.Put(4, ptr.Of("d"))
 			assert.ElementsMatch(t, tt.m.KeySet(), []int{1, 2, 3, 4})
 		})
 	}
@@ -125,12 +125,12 @@ func TestMap_Put(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.m.Size(), 3)
-			tt.m.Put(4, util.Ptr("d"))
+			tt.m.Put(4, ptr.Of("d"))
 			assert.Equal(t, tt.m.Size(), 4)
-			assert.Equal(t, tt.m.Get(4), util.Ptr("d"))
-			tt.m.Put(4, util.Ptr("e"))
+			assert.Equal(t, tt.m.Get(4), ptr.Of("d"))
+			tt.m.Put(4, ptr.Of("e"))
 			assert.Equal(t, tt.m.Size(), 4)
-			assert.Equal(t, tt.m.Get(4), util.Ptr("e"))
+			assert.Equal(t, tt.m.Get(4), ptr.Of("e"))
 		})
 	}
 }
@@ -142,7 +142,7 @@ func TestMap_Remove(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.m.Remove(3), util.Ptr("c"))
+			assert.Equal(t, tt.m.Remove(3), ptr.Of("c"))
 			assert.Equal(t, tt.m.Size(), 2)
 			assert.IsNil(t, tt.m.Remove(5))
 			assert.Equal(t, tt.m.Size(), 2)
@@ -172,13 +172,13 @@ func TestMap_Values(t *testing.T) {
 			assert.ElementsMatch(
 				t,
 				tt.m.Values(),
-				[]*string{util.Ptr("a"), util.Ptr("b"), util.Ptr("c")},
+				[]*string{ptr.Of("a"), ptr.Of("b"), ptr.Of("c")},
 			)
-			tt.m.Put(4, util.Ptr("d"))
+			tt.m.Put(4, ptr.Of("d"))
 			assert.ElementsMatch(
 				t,
 				tt.m.Values(),
-				[]*string{util.Ptr("a"), util.Ptr("b"), util.Ptr("c"), util.Ptr("d")},
+				[]*string{ptr.Of("a"), ptr.Of("b"), ptr.Of("c"), ptr.Of("d")},
 			)
 		})
 	}
@@ -196,18 +196,18 @@ func TestMap_All(t *testing.T) {
 
 			// verify we got all 3 expected pairs
 			expected := map[int]*string{
-				1: util.Ptr("a"),
-				2: util.Ptr("b"),
-				3: util.Ptr("c"),
+				1: ptr.Of("a"),
+				2: ptr.Of("b"),
+				3: ptr.Of("c"),
 			}
 			assert.Equal(t, collected, expected)
 
 			// add a new entry and verify it appears in the iterator
-			tt.m.Put(4, util.Ptr("d"))
+			tt.m.Put(4, ptr.Of("d"))
 			collected = maps.Collect(tt.m.All())
 
 			// verify we now have 4 pairs
-			expected[4] = util.Ptr("d")
+			expected[4] = ptr.Of("d")
 			assert.Equal(t, collected, expected)
 		})
 	}
@@ -244,7 +244,7 @@ func TestConcurrentMap_MemoryLeaks(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 1000000; i++ {
-			m.Put(i, util.Ptr(strconv.Itoa(i)))
+			m.Put(i, ptr.Of(strconv.Itoa(i)))
 			time.Sleep(time.Nanosecond)
 		}
 	}()
@@ -295,9 +295,9 @@ func prepareTestMaps() []testMap {
 }
 
 func putValues(m Map[int, string]) {
-	m.Put(1, util.Ptr("a"))
-	m.Put(2, util.Ptr("b"))
-	m.Put(3, util.Ptr("c"))
+	m.Put(1, ptr.Of("a"))
+	m.Put(2, ptr.Of("b"))
+	m.Put(3, ptr.Of("c"))
 }
 
 type testMap struct {

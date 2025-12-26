@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/reugn/async/internal/assert"
-	"github.com/reugn/async/internal/util"
+	"github.com/reugn/async/internal/ptr"
 )
 
 func TestValueCompareAndSwap(t *testing.T) {
@@ -47,12 +47,12 @@ func TestValueCompareAndSwap(t *testing.T) {
 	assert.Equal(t, swapped, true)
 	assert.Equal(t, value.Load(), "a")
 
-	stringPointer := util.Ptr("b")
+	stringPointer := ptr.Of("b")
 	swapped = value.CompareAndSwap("a", stringPointer)
 	assert.Equal(t, swapped, true)
 	assert.Same(t, value.Load().(*string), stringPointer)
 
-	swapped = value.CompareAndSwap(util.Ptr("b"), "c")
+	swapped = value.CompareAndSwap(ptr.Of("b"), "c")
 	assert.Equal(t, swapped, false)
 	assert.Same(t, value.Load().(*string), stringPointer)
 
@@ -79,7 +79,7 @@ func TestValueStore(t *testing.T) {
 	value.Store("a")
 	assert.Equal(t, value.Load(), "a")
 
-	stringPointer := util.Ptr("b")
+	stringPointer := ptr.Of("b")
 	value.Store(stringPointer)
 	assert.Same(t, value.Load().(*string), stringPointer)
 }
@@ -94,7 +94,7 @@ func TestValueSwap(t *testing.T) {
 	old = value.Swap("a")
 	assert.Equal(t, old, 1)
 
-	stringPointer := util.Ptr("b")
+	stringPointer := ptr.Of("b")
 	old = value.Swap(stringPointer)
 	assert.Equal(t, old, "a")
 	assert.Same(t, value.Load().(*string), stringPointer)

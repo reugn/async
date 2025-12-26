@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/reugn/async"
-	"github.com/reugn/async/internal/util"
+	"github.com/reugn/async/internal/ptr"
 )
 
 var (
@@ -26,7 +26,7 @@ func benchmarkMixedConcurrentLoad(m async.Map[mkey, int]) {
 		go func() {
 			defer wg.Done()
 			for i := from; i < to; i++ {
-				m.Put(mkey{uint64(i), strconv.Itoa(i)}, util.Ptr(i))
+				m.Put(mkey{uint64(i), strconv.Itoa(i)}, ptr.Of(i))
 			}
 		}()
 		go func() {
@@ -34,7 +34,7 @@ func benchmarkMixedConcurrentLoad(m async.Map[mkey, int]) {
 			for i := from; i < to; i++ {
 				_ = m.ComputeIfAbsent(mkey{uint64(i), strconv.Itoa(i)}, func(_ mkey) *int {
 					time.Sleep(time.Nanosecond)
-					return util.Ptr(i)
+					return ptr.Of(i)
 				})
 			}
 		}()
@@ -47,7 +47,7 @@ func benchmarkMixedConcurrentLoad(m async.Map[mkey, int]) {
 		go func() {
 			defer wg.Done()
 			for i := from; i < to; i++ {
-				_ = m.GetOrDefault(mkey{uint64(i), strconv.Itoa(i)}, util.Ptr(i))
+				_ = m.GetOrDefault(mkey{uint64(i), strconv.Itoa(i)}, ptr.Of(i))
 			}
 		}()
 	}
@@ -109,8 +109,8 @@ func benchmarkReadConcurrentLoad(m async.Map[mkey, int]) {
 		go func() {
 			defer wg.Done()
 			for i := from; i < to; i++ {
-				_ = m.GetOrDefault(mkey{uint64(i), strconv.Itoa(i)}, util.Ptr(i))
-				_ = m.GetOrDefault(mkey{math.MaxUint64, strconv.Itoa(i)}, util.Ptr(i))
+				_ = m.GetOrDefault(mkey{uint64(i), strconv.Itoa(i)}, ptr.Of(i))
+				_ = m.GetOrDefault(mkey{math.MaxUint64, strconv.Itoa(i)}, ptr.Of(i))
 			}
 		}()
 		go func() {
@@ -138,7 +138,7 @@ func benchmarkReadConcurrentLoad(m async.Map[mkey, int]) {
 
 func fillMap(m async.Map[mkey, int]) {
 	for i := 0; i < 100; i++ {
-		m.Put(mkey{uint64(i), strconv.Itoa(i)}, util.Ptr(i))
+		m.Put(mkey{uint64(i), strconv.Itoa(i)}, ptr.Of(i))
 	}
 }
 
@@ -194,7 +194,7 @@ func benchmarkWriteConcurrentLoad(m async.Map[mkey, int]) {
 		go func() {
 			defer wg.Done()
 			for i := from; i < to; i++ {
-				m.Put(mkey{uint64(i), strconv.Itoa(i)}, util.Ptr(i))
+				m.Put(mkey{uint64(i), strconv.Itoa(i)}, ptr.Of(i))
 			}
 		}()
 		go func() {
@@ -202,7 +202,7 @@ func benchmarkWriteConcurrentLoad(m async.Map[mkey, int]) {
 			for i := from; i < to; i++ {
 				_ = m.ComputeIfAbsent(mkey{uint64(i), strconv.Itoa(i)}, func(_ mkey) *int {
 					time.Sleep(time.Nanosecond)
-					return util.Ptr(i)
+					return ptr.Of(i)
 				})
 			}
 		}()
