@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/reugn/async/internal/assert"
-	"github.com/reugn/async/internal/util"
+	"github.com/reugn/async/internal/ptr"
 )
 
 func TestFuture(t *testing.T) {
@@ -31,8 +31,8 @@ func TestFuture_Utils(t *testing.T) {
 	p2 := NewPromise[*int]()
 	p3 := NewPromise[*int]()
 
-	res1 := util.Ptr(1)
-	res2 := util.Ptr(2)
+	res1 := ptr.Of(1)
+	res2 := ptr.Of(2)
 	err3 := errors.New("error")
 
 	go func() {
@@ -55,7 +55,7 @@ func TestFuture_FirstCompleted(t *testing.T) {
 	p := NewPromise[*bool]()
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		p.Success(util.Ptr(true))
+		p.Success(ptr.Of(true))
 	}()
 
 	timeout := FutureTimer[*bool](10 * time.Millisecond)
@@ -69,7 +69,7 @@ func TestFuture_Transform(t *testing.T) {
 	p1 := NewPromise[*int]()
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		p1.Success(util.Ptr(1))
+		p1.Success(ptr.Of(1))
 	}()
 
 	future := p1.Future().Map(func(v *int) (*int, error) {
@@ -81,7 +81,7 @@ func TestFuture_Transform(t *testing.T) {
 		p2.Success(&inc)
 		return p2.Future(), nil
 	}).Recover(func() (*int, error) {
-		return util.Ptr(5), nil
+		return ptr.Of(5), nil
 	})
 
 	res, _ := future.Get(context.Background())
@@ -178,7 +178,7 @@ func TestFuture_GoroutineLeak(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(100 * time.Millisecond)
-			promise.Success(util.Ptr("OK"))
+			promise.Success(ptr.Of("OK"))
 		}()
 		wg.Add(1)
 		go func() {

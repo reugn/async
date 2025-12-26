@@ -90,7 +90,7 @@ func TestCyclicBarrier_ContextCancelRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			// skip	the first cycle to ensure the barrier is reset
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			// second cycle
 			assert.IsNil(t, barrier.Await())
 		}()

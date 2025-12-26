@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/reugn/async/internal/assert"
-	"github.com/reugn/async/internal/util"
+	"github.com/reugn/async/internal/ptr"
 )
 
 func TestTask_Success(t *testing.T) {
@@ -23,7 +23,7 @@ func TestTask_Success(t *testing.T) {
 func TestTask_SuccessPtr(t *testing.T) {
 	task := NewTask(func() (*string, error) {
 		time.Sleep(10 * time.Millisecond)
-		return util.Ptr("ok"), nil
+		return ptr.Of("ok"), nil
 	})
 	res, err := task.Call().Join()
 
