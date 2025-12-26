@@ -2,56 +2,128 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/reugn/async"
+	"github.com/reugn/async/internal/ptr"
 )
 
-const ok = "OK"
-
 func main() {
-	// using a promise
-	future1 := asyncAction()
-	result1, err := future1.Join()
+	runPromiseExample()
+	runTaskExample()
+	runExecutorExample()
+	runTransformationsExample()
+	runRecoveryExample()
+}
+
+func runPromiseExample() {
+	fmt.Println("=== Promise Example ===")
+	future := asyncAction()
+	result, err := future.Join()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Print(result1)
+	fmt.Printf("Result: %s\n", result)
+}
 
-	// using a task
-	task := async.NewTask(func() (string, error) { return ok, nil })
-	result2, err := task.Call().Join()
+func runTaskExample() {
+	fmt.Println("\n=== Task Example ===")
+	task := async.NewTask(func() (string, error) {
+		time.Sleep(100 * time.Millisecond)
+		return "Task completed", nil
+	})
+	result, err := task.Call().Join()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Print(result2)
+	fmt.Printf("Result: %s\n", result)
+}
 
-	// using the executor
+func runExecutorExample() {
+	fmt.Println("\n=== Executor Example ===")
 	ctx := context.Background()
 	executor := async.NewExecutor[*string](ctx, async.NewExecutorConfig(2, 2))
 
-	future3, err := executor.Submit(func(_ context.Context) (*string, error) {
-		value := ok
-		return &value, nil
+	future, err := executor.Submit(func(_ context.Context) (*string, error) {
+		value := "Executor task completed"
+		return ptr.Of(value), nil
 	})
 	if err != nil {
+		if shutdownErr := executor.Shutdown(); shutdownErr != nil {
+			log.Printf("Error shutting down executor: %v", shutdownErr)
+		}
 		log.Fatal(err)
 	}
 
-	result3, err := future3.Get(ctx)
+	result, err := future.Get(ctx)
+	if err != nil {
+		if shutdownErr := executor.Shutdown(); shutdownErr != nil {
+			log.Printf("Error shutting down executor: %v", shutdownErr)
+		}
+		log.Fatal(err)
+	}
+	fmt.Printf("Result: %s\n", *result)
+
+	if err := executor.Shutdown(); err != nil {
+		log.Printf("Error shutting down executor: %v", err)
+	}
+}
+
+func runTransformationsExample() {
+	fmt.Println("\n=== Future Transformations ===")
+	promise := async.NewPromise[int]()
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		promise.Success(10)
+	}()
+
+	transformed := promise.Future().
+		Map(func(v int) (int, error) {
+			return v * 2, nil
+		}).
+		FlatMap(func(v int) (async.Future[int], error) {
+			p := async.NewPromise[int]()
+			go func() {
+				time.Sleep(50 * time.Millisecond)
+				p.Success(v + 5)
+			}()
+			return p.Future(), nil
+		})
+
+	result, err := transformed.Join()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Print(*result3)
+	fmt.Printf("Transformed result: %d\n", result)
+}
+
+func runRecoveryExample() {
+	fmt.Println("\n=== Error Recovery ===")
+	failingPromise := async.NewPromise[int]()
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		failingPromise.Failure(errors.New("operation failed"))
+	}()
+
+	recovered := failingPromise.Future().Recover(func() (int, error) {
+		return 10, nil // fallback value
+	})
+
+	result, err := recovered.Join()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Recovered result: %d\n", result)
 }
 
 func asyncAction() async.Future[string] {
 	promise := async.NewPromise[string]()
 	go func() {
-		time.Sleep(time.Second)
-		promise.Success(ok)
+		time.Sleep(100 * time.Millisecond)
+		promise.Success("Promise completed")
 	}()
-
 	return promise.Future()
 }
