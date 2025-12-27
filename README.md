@@ -1,4 +1,4 @@
-<div align="center" style="margin:0 !important;"><img src="./docs/images/async.png" /></div>
+<div align="center" style="margin:0 !important;"><img src="docs/images/async.png" width="240" /></div>
 <div align="center">
   <a href="https://github.com/reugn/async/actions/workflows/build.yml"><img src="https://github.com/reugn/async/actions/workflows/build.yml/badge.svg"></a>
   <a href="https://pkg.go.dev/github.com/reugn/async"><img src="https://pkg.go.dev/badge/github.com/reugn/async"></a>
@@ -6,9 +6,10 @@
   <a href="https://codecov.io/gh/reugn/async"><img src="https://codecov.io/gh/reugn/async/branch/master/graph/badge.svg"></a>
 </div>
 <br/>
-Async is a synchronization and asynchronous computation package for Go.
 
-## Overview
+Async provides a comprehensive set of synchronization primitives and asynchronous computation utilities for Go, complementing the standard library with additional concurrency patterns and data structures.
+
+## Features
 * **ConcurrentMap** - Implements the generic `async.Map` interface in a thread-safe manner by delegating load/store operations to the underlying `sync.Map`.
 * **ShardedMap** - Implements the generic `async.Map` interface in a thread-safe manner, delegating load/store operations to one of the underlying `async.SynchronizedMap`s (shards), using a key hash to calculate the shard number.
 * **Future** - A placeholder object for a value that may not yet exist.
@@ -23,7 +24,7 @@ Async is a synchronization and asynchronous computation package for Go.
 * **PriorityLock** - A non-reentrant mutex that allows for the specification of lock acquisition priority.
 
 ## Examples
-Can be found in the examples directory/tests.
+Runnable examples are available in the [examples](./examples) directory. See the test files for additional usage examples.
 
 ## License
 Licensed under the MIT License.
