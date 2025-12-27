@@ -2,7 +2,11 @@ coverage:
   status:
     project:
       default:
-        target: 80%
+        target: 90%
     patch:
       default:
-        target: 70%
+        target: 80%
+
+ignore:
+  - "examples"
+  - "internal"
