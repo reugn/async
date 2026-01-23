@@ -15,18 +15,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get go version from go.mod
         run: |
           echo "GO_VERSION=$(grep '^go ' go.mod | cut -d " " -f 2)" >> $GITHUB_ENV
 
       - name: Setup-go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.1.5
+          version: v2.7.2
